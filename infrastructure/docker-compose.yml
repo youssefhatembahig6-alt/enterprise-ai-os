@@ -1,0 +1,210 @@
+name: eaios
+
+# The complete local system (spec FR-002). `make up` builds, starts, migrates,
+# and waits for health. Eight services: four stores, one bootstrap job, and the
+# three application services.
+
+x-python-env: &python-env
+  # Pinned so number and date formatting cannot vary by host (spec FR-012a).
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  TZ: UTC
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  LOG_JSON: ${LOG_JSON:-true}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-eaios}
+  POSTGRES_OWNER_USER: ${POSTGRES_OWNER_USER:-eaios_owner}
+  POSTGRES_OWNER_PASSWORD: ${POSTGRES_OWNER_PASSWORD:-eaios_owner_local_only}
+  POSTGRES_APP_USER: ${POSTGRES_APP_USER:-eaios_app}
+  POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-eaios_app_local_only}
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  QDRANT_HOST: qdrant
+  QDRANT_PORT: "6333"
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-eaios_local}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-eaios_local_only_secret}
+  MINIO_BUCKET: ${MINIO_BUCKET:-eaios}
+  MINIO_SECURE: "false"
+
+services:
+  # ---------------------------------------------------------------- stores ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-eaios}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:-eaios_owner_local_only}
+      # Deterministic collation: sort order affects nothing in the fingerprint
+      # (digests are sorted in Python) but keeps psql output stable between hosts.
+      LANG: C.UTF-8
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-eaios}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    ports:
+      - "${QDRANT_HOST_PORT:-6333}:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      # The Qdrant image has no curl; TCP reachability is what readiness needs.
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-eaios_local}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-eaios_local_only_secret}
+    ports:
+      - "${MINIO_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_HOST: minio
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-eaios_local}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-eaios_local_only_secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-eaios}
+    entrypoint: ["/bin/sh", "/bootstrap.sh"]
+    volumes:
+      - ./minio/bootstrap.sh:/bootstrap.sh:ro
+    restart: "no"
+
+  # ----------------------------------------------------------- application ---
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment: *python-env
+    ports:
+      - "${API_HOST_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health/live')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: services/worker/Dockerfile
+    environment: *python-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Targeted at this container's own node (see eaios_worker/health.py): a
+      # broadcast ping would be answered by any replica, so a wedged worker would
+      # stay "healthy" for as long as one sibling was alive.
+      test: ["CMD", "python", "-m", "eaios_worker.health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      # Two addresses for the same API, because two different callers need it.
+      # The browser reaches it through the published port; server components run
+      # inside this network and reach it by service name. One value cannot serve
+      # both, and the failure looks like an outage rather than a misconfiguration.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_HOST_PORT:-8000}
+      API_INTERNAL_URL: http://api:8000
+      NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_HOST_PORT:-3000}
+    ports:
+      - "${WEB_HOST_PORT:-3000}:3000"
+    depends_on:
+      - api
+    healthcheck:
+      # Without this, `web` was the only long-running service with no health probe,
+      # and wait-for-healthy.sh treats "no healthcheck" as ready — so `make up`
+      # reported success without ever confirming the frontend serves (FR-002).
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # The generator is a one-shot command, not a long-running service. It is
+  # declared here so `make seed` / `make reset` run in an identical environment.
+  seed:
+    build:
+      context: ..
+      dockerfile: scripts/seed/Dockerfile
+    environment: *python-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles: ["tools"]
+    restart: "no"
+
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:
+  minio-data:

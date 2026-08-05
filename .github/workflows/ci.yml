@@ -1,0 +1,253 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+env:
+  # Pinned so number and date formatting cannot vary by runner (spec FR-012a).
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  TZ: UTC
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast feedback: pure-logic checks that need no services.
+  # This is where the determinism primitives are proven.
+  # ---------------------------------------------------------------------------
+  unit:
+    name: unit (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      # Multi-OS is not decoration: SC-002 claims the dataset is identical on
+      # every team member's machine, and this matrix is the only thing that
+      # exercises that claim (spec FR-047b).
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify line endings survived checkout
+        shell: bash
+        run: |
+          # A CRLF here would silently change every generated document's bytes.
+          if grep -qU $'\r' packages/core/src/eaios_core/__init__.py; then
+            echo "::error::CRLF detected — .gitattributes is not being honoured"
+            exit 1
+          fi
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.18"
+          enable-cache: true
+      - run: uv sync
+      - run: uv run python -m ruff check .
+      # `scripts/seed/src` was omitted here while `make lint` checked it — leaving
+      # the largest package, and the one every determinism guarantee runs through,
+      # as the only place a type regression could land without blocking the change.
+      - run: uv run python -m mypy packages/core/src apps/api/src services/worker/src scripts/seed/src
+      - run: uv run python -m pytest tests/unit -m unit -v
+
+      - name: Compute the platform determinism fingerprint
+        shell: bash
+        env:
+          PYTHONPATH: packages/core/src
+        run: uv run python -m eaios_core.selfcheck > fingerprint-${{ matrix.os }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fingerprint-${{ matrix.os }}
+          path: fingerprint-${{ matrix.os }}.txt
+
+  # ---------------------------------------------------------------------------
+  # The cross-platform comparison SC-002 actually depends on.
+  #
+  # Before this job existed, the fingerprint was computed on Ubuntu only, so the
+  # "identical on every team member's machine" claim rested on a check that could
+  # never fail. GitHub's Windows runners cannot run Linux containers, so the full
+  # seed cannot run cross-OS — but the platform-sensitive parts of generation are
+  # pure Python (line endings, encoding, locale, ordering) and those are compared
+  # here (converge finding F2).
+  # ---------------------------------------------------------------------------
+  determinism:
+    name: cross-platform determinism
+    needs: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fingerprint-*
+          merge-multiple: true
+
+      - name: Fingerprints must be identical across platforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -1 fingerprint-*.txt
+          count=$(ls -1 fingerprint-*.txt | wc -l)
+          if [ "$count" -lt 2 ]; then
+            echo "::error::expected at least two platform fingerprints, found $count"
+            exit 1
+          fi
+          echo "--- reported ---"
+          for f in fingerprint-*.txt; do printf '%s  %s\n' "$(cat "$f")" "$f"; done
+          unique=$(cat fingerprint-*.txt | sort -u | wc -l)
+          if [ "$unique" -ne 1 ]; then
+            echo "::error::platform fingerprints diverge — generation is not deterministic across OSes (SC-002)"
+            exit 1
+          fi
+          echo "All platforms agree: $(head -1 fingerprint-ubuntu-latest.txt)"
+
+  # ---------------------------------------------------------------------------
+  # Full stack: migrations, seed, isolation, coherence, determinism.
+  # ---------------------------------------------------------------------------
+  stack:
+    name: integration + security + e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.18"
+          enable-cache: true
+      - run: uv sync
+
+      # Node and pnpm for the browser sweeps at the end of this job. Without
+      # them the Playwright step fails on a missing runtime rather than on
+      # anything it was written to check.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Start the stack
+        run: |
+          cp infrastructure/.env.example .env
+          make up
+
+      - name: Migrations are reversible
+        run: uv run python -m pytest tests/integration/test_migrations.py -m integration -v
+
+      - name: Seed from empty
+        run: |
+          docker compose -f infrastructure/docker-compose.yml --env-file .env \
+            run --rm --no-deps -T seed seed --profile smoke
+
+      - name: Integrity, coherence, and provenance
+        run: uv run python -m pytest tests/integration -m integration -v
+
+      - name: Tenant isolation
+        run: uv run python -m pytest tests/security -m security -v
+
+      - name: Determinism and lifecycle
+        run: uv run python -m pytest tests/e2e -m e2e -v
+
+      - name: Public content carries nothing sensitive
+        run: uv run python -m pytest tests/security/test_public_content.py -m security -v
+
+      # The committed API types must match the API that is running (spec 002
+      # plan: contracts/). `src/generated/api.ts` is committed on purpose and
+      # regenerated by hand, so nothing otherwise notices when a schema change ships
+      # without it — and `pnpm typecheck` in the `web` job passes against a stale
+      # file quite happily. Placed before the browser suite so a Playwright failure
+      # cannot mask a contract that has drifted.
+      - name: Committed API types match the running API
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @eaios/contracts verify
+
+      # The public website's browser-side verification (spec 002 FR-053, FR-055).
+      # Runs here rather than in the `web` job because it needs the stack and a
+      # seeded database — the axe, keyboard, responsive, and metadata sweeps all
+      # assert against real content, and against an empty site they would pass
+      # while checking nothing.
+      - name: Public website end-to-end, accessibility, and metadata
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @eaios/web exec playwright install --with-deps chromium
+          pnpm --filter @eaios/web exec playwright test
+
+      - name: Fingerprint matches the committed known-good value
+        # Without this step, verification only proves the dataset agrees with its
+        # own manifest — a generator change would produce a new dataset and a new
+        # manifest that match each other perfectly (spec FR-017a).
+        run: |
+          docker compose -f infrastructure/docker-compose.yml --env-file .env \
+            run --rm --no-deps -T seed verify --profile smoke
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f infrastructure/docker-compose.yml logs
+
+  # ---------------------------------------------------------------------------
+  # The full dataset — the CLI default, what `make seed` produces, and the one a
+  # demo runs on.
+  #
+  # Every other job seeds `smoke`, so until now the numbers the specification
+  # actually commits to (FR-020b's volume table, SC-005's 190–210 employees) were
+  # never measured, and the committed `full` fingerprint was never compared against
+  # a live environment. Kept as its own job because it is slower than smoke and
+  # should not gate the fast feedback the `stack` job gives.
+  # ---------------------------------------------------------------------------
+  full-dataset:
+    name: full profile (FR-020b, SC-005)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.18"
+          enable-cache: true
+      - run: uv sync
+
+      - name: Start the stack
+        run: |
+          cp infrastructure/.env.example .env
+          make up
+
+      - name: Seed the full dataset
+        run: |
+          docker compose -f infrastructure/docker-compose.yml --env-file .env \
+            run --rm --no-deps -T seed seed --profile full
+
+      - name: Volumes, composition, and hierarchy
+        # test_org_hierarchy.py carries the named-composition assertions (the eight
+        # departments and three offices by name), and test_volume_targets.py carries
+        # SC-005's range, which skips itself on any profile but this one.
+        run: |
+          uv run python -m pytest -m integration -v \
+            tests/integration/test_volume_targets.py \
+            tests/integration/test_org_hierarchy.py \
+            tests/integration/test_document_ownership.py
+
+      - name: Fingerprint matches the committed full-profile value
+        run: |
+          docker compose -f infrastructure/docker-compose.yml --env-file .env \
+            run --rm --no-deps -T seed verify --profile full
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f infrastructure/docker-compose.yml logs
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      # The public site builds here so a type or route error fails the web job
+      # rather than the stack job, where it would read as an infrastructure fault.
+      - run: pnpm --filter @eaios/web build

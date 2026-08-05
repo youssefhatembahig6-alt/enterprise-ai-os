@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Qdrant collections are provisioned with tenant-scoped structure but left EMPTY",
+    "in this feature (confirmed scope decision D2). Chunking, embedding, and indexing",
+    "belong to the ingestion feature.",
+    "",
+    "The company_id payload index is created now rather than later on purpose: adding",
+    "it to an already-populated collection is a reindex, and the filter path must exist",
+    "before any content does so that ingestion adds content to a store that already",
+    "filters correctly (research R10).",
+    "",
+    "The cross-tenant probe in this feature asserts these collections exist, carry the",
+    "payload index, and hold zero points. Its semantic counterpart — similarity search",
+    "returning nothing across tenants — is a required acceptance test of the ingestion",
+    "feature, recorded in the spec's carry-forward list."
+  ],
+  "vectors": {
+    "size": 1024,
+    "distance": "Cosine"
+  },
+  "payload_indexes": [
+    { "field": "company_id", "schema": "keyword" },
+    { "field": "department_id", "schema": "keyword" },
+    { "field": "classification", "schema": "keyword" },
+    { "field": "country", "schema": "keyword" },
+    { "field": "owner_id", "schema": "keyword" },
+    { "field": "document_id", "schema": "keyword" }
+  ],
+  "collections": [
+    {
+      "name": "documents",
+      "description": "Policy documents, contracts, and internal prose."
+    },
+    {
+      "name": "code",
+      "description": "Synthetic repository content, chunked by syntax boundary."
+    }
+  ]
+}

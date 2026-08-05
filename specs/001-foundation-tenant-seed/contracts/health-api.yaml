@@ -1,0 +1,197 @@
+openapi: 3.1.0
+
+info:
+  title: Enterprise AI OS — Foundation API
+  version: 0.1.0
+  description: >
+    The only HTTP surface this feature exposes. Health and readiness endpoints plus a read-only
+    dataset-manifest endpoint used by the verification tooling and the web status shell.
+
+    No authentication exists yet (confirmed scope decision D1). Because of that, no endpoint here
+    returns tenant-owned business data — the manifest endpoint returns only dataset provenance and
+    per-family counts, never records. The next feature introduces authentication before any
+    tenant-scoped endpoint is added.
+
+servers:
+  - url: http://localhost:8000
+    description: Local Docker Compose environment
+
+tags:
+  - name: health
+    description: Liveness and readiness
+  - name: dataset
+    description: Dataset provenance
+
+paths:
+  /health/live:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      description: >
+        Returns 200 whenever the process is running. Touches no dependency, so a slow or unavailable
+        backing service can never cause a restart loop.
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Readiness probe with per-dependency detail
+      description: >
+        Checks PostgreSQL, Redis, Qdrant, MinIO, and the background worker concurrently, each with
+        an independent timeout. Returns 200 only when all five are reachable; otherwise 503 with the
+        failing dependency named. Satisfies FR-003 and US1 acceptance scenario 3 — a partially
+        started environment must be immediately visible rather than reported as a single opaque
+        boolean, and the worker is a backing service that scenario names explicitly.
+
+        The worker probe is a bounded broadcast over the broker. An unreachable broker fails both
+        the `redis` and `worker` entries; a reachable broker with no consumer fails only `worker`,
+        which is what distinguishes "queue is gone" from "nothing is draining the queue".
+      operationId: getReadiness
+      responses:
+        '200':
+          description: All dependencies reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: At least one dependency is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+  /dataset/manifest:
+    get:
+      tags: [dataset]
+      summary: Dataset provenance and completion state
+      description: >
+        Returns the seed value, pinned reference date, generator version, per-family realized counts,
+        fingerprint, and completion marker. Returns 404 when the environment has never been seeded.
+        A response whose `completed_at` is null indicates an interrupted seed (FR-014b) and must be
+        treated as an incomplete environment by callers.
+      operationId: getDatasetManifest
+      responses:
+        '200':
+          description: Manifest found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetManifest'
+        '404':
+          description: Environment has not been seeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+
+    LivenessResponse:
+      type: object
+      required: [status, service, version]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [alive]
+        service:
+          type: string
+          example: eaios-api
+        version:
+          type: string
+          example: 0.1.0
+
+    DependencyStatus:
+      type: object
+      required: [name, status, latency_ms]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          enum: [postgres, redis, qdrant, minio, worker]
+        status:
+          type: string
+          enum: [up, down, timeout]
+        latency_ms:
+          type: integer
+          minimum: 0
+        detail:
+          type: string
+          description: Present only when status is not "up". Never contains credentials or connection strings.
+
+    ReadinessResponse:
+      type: object
+      required: [status, dependencies]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [ready, degraded]
+        dependencies:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/DependencyStatus'
+
+    DatasetManifest:
+      type: object
+      required:
+        [root_seed, reference_date, generator_version, entity_counts,
+         root_fingerprint, started_at, completed_at, is_complete]
+      additionalProperties: false
+      properties:
+        root_seed:
+          type: string
+          example: '20260630'
+        reference_date:
+          type: string
+          format: date
+          example: '2026-06-30'
+        generator_version:
+          type: string
+        entity_counts:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+          description: Realized count per entity family, keyed "{company_slug}.{family}".
+        family_digests:
+          type: object
+          additionalProperties:
+            type: string
+            pattern: '^[0-9a-f]{64}$'
+        root_fingerprint:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: [string, 'null']
+          format: date-time
+          description: Null means the seed did not finish; the environment is incomplete.
+        is_complete:
+          type: boolean
+          description: Convenience mirror of (completed_at != null).
+
+    Problem:
+      type: object
+      required: [title, status]
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string

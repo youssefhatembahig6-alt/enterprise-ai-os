@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eaios.local/schemas/dataset-manifest.schema.json",
+  "title": "Dataset Manifest",
+  "description": "Provenance record for a seeded Enterprise AI OS environment. Written by `eaios-seed seed`, returned by GET /dataset/manifest, and consumed by `eaios-seed verify` and CI. A manifest whose completed_at is null describes an incomplete environment (FR-014b).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "root_seed",
+    "reference_date",
+    "generator_version",
+    "profile",
+    "companies",
+    "entity_counts",
+    "family_digests",
+    "root_fingerprint",
+    "started_at",
+    "completed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Bumped only on a breaking change to this schema."
+    },
+    "root_seed": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Root seed from which every generator sub-seed is derived (research R3).",
+      "examples": ["20260630"]
+    },
+    "reference_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Pinned generation date. All temporal data derives from it; no wall clock is read (research R2).",
+      "examples": ["2026-06-30"]
+    },
+    "generator_version": {
+      "type": "string",
+      "description": "Version of the seed generator. A change here legitimately changes the fingerprint.",
+      "examples": ["0.1.0"]
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["full", "smoke"],
+      "description": "Volume profile. `full` matches the spec volumes in FR-020b; `smoke` is a reduced set for fast CI."
+    },
+    "companies": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "The seeded tenants. Exactly two in this feature.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "name", "id", "employee_count"],
+        "properties": {
+          "slug": { "type": "string", "enum": ["niletech", "delta-retail"] },
+          "name": { "type": "string" },
+          "id": { "type": "string", "format": "uuid" },
+          "employee_count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "entity_counts": {
+      "type": "object",
+      "description": "Realized row count per entity family, keyed \"{company_slug}.{family}\" for tenant-owned families and \"global.{family}\" for allowlisted ones (FR-016, FR-020b).",
+      "propertyNames": { "pattern": "^(niletech|delta-retail|global)\\.[a-z_]+$" },
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "family_digests": {
+      "type": "object",
+      "description": "SHA-256 digest per entity family, computed from order-independent sorted row digests (research R5). Enables naming which family drifted on mismatch.",
+      "propertyNames": { "pattern": "^(niletech|delta-retail|global|files)\\.[a-z_]+$" },
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "root_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 over the sorted family digests plus the files digest. Two runs with identical seed and reference date MUST produce identical values (FR-011, SC-002)."
+    },
+    "fingerprint_exclusions": {
+      "type": "array",
+      "description": "Documented exclusion list required by FR-015a. Kept deliberately minimal; created_at/updated_at are NOT excluded because they are set deterministically from the reference clock.",
+      "items": { "type": "string" },
+      "default": ["dataset_manifest", "alembic_version"]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Wall-clock start of the seed run. Excluded from the fingerprint — it is run metadata, not dataset content."
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Written last, in the same transaction as the fingerprint. Null means the run did not finish and the environment MUST be treated as incomplete (FR-014b, FR-014c)."
+    },
+    "duration_seconds": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Observed seed duration. Reported against the SC-008 budget of 600 seconds."
+    },
+    "host_platform": {
+      "type": ["string", "null"],
+      "description": "OS the seed ran on. Recorded for cross-platform determinism diagnosis; excluded from the fingerprint.",
+      "examples": ["linux", "darwin", "win32"]
+    }
+  },
+  "examples": [
+    {
+      "schema_version": 1,
+      "root_seed": "20260630",
+      "reference_date": "2026-06-30",
+      "generator_version": "0.1.0",
+      "profile": "full",
+      "companies": [
+        {
+          "slug": "niletech",
+          "name": "NileTech Solutions",
+          "id": "6f1a9c02-3b7e-5d84-9f21-0c4a7e1b8d33",
+          "employee_count": 200
+        },
+        {
+          "slug": "delta-retail",
+          "name": "Delta Retail Group",
+          "id": "b28d4e61-7c05-5a19-8e6f-2d93a1f4c077",
+          "employee_count": 40
+        }
+      ],
+      "entity_counts": {
+        "global.permissions": 17,
+        "niletech.users": 200,
+        "niletech.orders": 2400,
+        "niletech.attendance_records": 26000,
+        "delta-retail.users": 40,
+        "delta-retail.orders": 1200
+      },
+      "family_digests": {
+        "niletech.users": "3a91f7c4d0b25e8867aa1c93f4de20b5711c8e6d9042ab3fc5e7d18a2b96c40f",
+        "files.documents": "88bec1240f7a93d5e0b6172c8fa34d95e21c70b8d64af3921e5c807ab3d61f42"
+      },
+      "root_fingerprint": "9f2c5a1e77b04d3689ce21fa5b8d7c0433e916a2c8047fbd5e1a6392c74d0a71",
+      "fingerprint_exclusions": ["dataset_manifest", "alembic_version"],
+      "started_at": "2026-08-01T09:14:02Z",
+      "completed_at": "2026-08-01T09:18:14Z",
+      "duration_seconds": 252,
+      "host_platform": "linux"
+    }
+  ]
+}

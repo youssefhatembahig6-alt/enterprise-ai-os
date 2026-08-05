@@ -1,0 +1,26 @@
+[project]
+name = "eaios-seed"
+version = "0.1.0"
+description = "Deterministic synthetic-enterprise generator for two isolated tenants"
+requires-python = "==3.12.*"
+
+# Faker's word and name lists change between releases. This pin is load-bearing,
+# not hygiene: an unpinned minor upgrade would change every generated name and
+# invalidate the committed fingerprint (spec FR-012b, research R3).
+dependencies = [
+    "eaios-core",
+    "Faker==33.3.0",
+    "Jinja2==3.1.5",
+    "typer==0.15.1",
+    "alembic==1.14.0",
+]
+
+[project.scripts]
+eaios-seed = "eaios_seed.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eaios_seed"]

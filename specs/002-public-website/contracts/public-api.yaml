@@ -1,0 +1,392 @@
+openapi: 3.1.0
+
+info:
+  title: Enterprise AI OS — Public Website API
+  version: 0.2.0
+  description: >
+    The read-only public surface behind the NileTech website, plus one write path for contact
+    submissions.
+
+    Every response is built from the declared allowlist in `public-fields.md` — models are
+    hand-written per endpoint rather than serialized from ORM rows, so an added column cannot
+    widen a response by accident.
+
+    The tenant is fixed in server code (FR-009a). No request field, header, path segment, or
+    hostname selects it. This API is unauthenticated by design and holds no session.
+
+servers:
+  - url: http://localhost:8000
+    description: Local Docker Compose environment
+
+tags:
+  - name: public
+    description: Read-only public content
+  - name: contact
+    description: Public contact submissions
+
+paths:
+  /public/company:
+    get:
+      tags: [public]
+      summary: Company identity
+      operationId: getPublicCompany
+      responses:
+        '200':
+          description: Company name and domain
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyOut' }
+
+  /public/offices:
+    get:
+      tags: [public]
+      summary: Office locations
+      operationId: listPublicOffices
+      responses:
+        '200':
+          description: Offices, headquarters first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OfficeOut' }
+
+  /public/services:
+    get:
+      tags: [public]
+      summary: Service offerings
+      operationId: listPublicServices
+      responses:
+        '200':
+          description: Services in display order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ServiceOut' }
+
+  /public/products:
+    get:
+      tags: [public]
+      summary: Public product offerings
+      description: >
+        The public catalog only. The internal sellable `products` table is a different table and
+        is not reachable through any public route.
+      operationId: listPublicProducts
+      responses:
+        '200':
+          description: Product offerings in display order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProductOut' }
+
+  /public/leadership:
+    get:
+      tags: [public]
+      summary: Leadership profiles
+      description: >
+        Reads exactly one column from `users` — the person's display name. No internal identifier
+        of that employee appears in the response.
+      operationId: listPublicLeadership
+      responses:
+        '200':
+          description: Profiles in display order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeadershipOut' }
+
+  /public/news:
+    get:
+      tags: [public]
+      summary: News items, newest first
+      operationId: listPublicNews
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 50 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Summaries without the body
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NewsPage' }
+
+  /public/news/{slug}:
+    get:
+      tags: [public]
+      summary: One news item in full
+      operationId: getPublicNewsItem
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: The article
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NewsDetailOut' }
+        '404':
+          description: >
+            No such item for this tenant. A slug belonging to the other tenant returns this same
+            response — a public visitor learns nothing about whether it exists elsewhere.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /public/vacancies:
+    get:
+      tags: [public]
+      summary: Open vacancies
+      description: Closed vacancies are absent from the response entirely, not flagged.
+      operationId: listPublicVacancies
+      parameters:
+        - name: office
+          in: query
+          required: false
+          description: Office city, case-insensitive. Unknown values yield an empty list.
+          schema: { type: string, maxLength: 60 }
+        - name: department
+          in: query
+          required: false
+          description: Department name, case-insensitive. Unknown values yield an empty list.
+          schema: { type: string, maxLength: 60 }
+      responses:
+        '200':
+          description: Open vacancies matching the filters
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/VacancyOut' }
+
+  /public/vacancies/{slug}:
+    get:
+      tags: [public]
+      summary: One vacancy in full
+      operationId: getPublicVacancy
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: The vacancy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VacancyDetailOut' }
+        '404':
+          description: No such open vacancy for this tenant
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /public/contact:
+    post:
+      tags: [contact]
+      summary: Submit a contact enquiry
+      description: >
+        Stores the message and writes an audit entry. **Delivers nothing** — no email, no queued
+        job, no notification, no external call (FR-023a).
+
+        That is why this endpoint does not engage the constitution's human-approval gate: storing
+        a message is not an irreversible outward action. If delivery is ever added, it becomes a
+        send action and the gate applies — this note is the record of that decision.
+
+        An exact duplicate of a recent submission is accepted and reported as success without
+        creating a second record: the visitor's intent was satisfied by the first one.
+      operationId: submitPublicContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactIn' }
+      responses:
+        '202':
+          description: Accepted and stored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactAccepted' }
+        '422':
+          description: >
+            Validation failed. Errors are field-addressed so the interface can attach each to its
+            control (FR-021). No internal detail is disclosed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationProblem' }
+        '429':
+          description: >
+            The per-address submission bound has been reached (FR-024d). No record is stored and
+            the caller is not told the submission succeeded. The message is informative without
+            disclosing the limit or the window — telling a script the threshold is telling it how
+            to stay under it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+components:
+  schemas:
+
+    CompanyOut:
+      type: object
+      required: [name, domain]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        domain: { type: string }
+
+    OfficeOut:
+      type: object
+      required: [city, country, address, is_headquarters]
+      additionalProperties: false
+      properties:
+        city: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        address: { type: string }
+        is_headquarters: { type: boolean }
+
+    ServiceOut:
+      type: object
+      required: [name, summary, description, display_order]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        summary: { type: string }
+        description: { type: string }
+        display_order: { type: integer, minimum: 0 }
+
+    ProductOut:
+      type: object
+      required: [name, tagline, description, display_order]
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        tagline: { type: string }
+        description: { type: string }
+        display_order: { type: integer, minimum: 0 }
+
+    LeadershipOut:
+      type: object
+      required: [full_name, public_title, bio, display_order]
+      additionalProperties: false
+      properties:
+        full_name: { type: string }
+        public_title: { type: string }
+        bio: { type: string }
+        display_order: { type: integer, minimum: 0 }
+
+    NewsOut:
+      type: object
+      required: [slug, headline, published_on]
+      additionalProperties: false
+      properties:
+        slug: { type: string }
+        headline: { type: string }
+        published_on: { type: string, format: date }
+
+    NewsDetailOut:
+      type: object
+      required: [slug, headline, published_on, body]
+      additionalProperties: false
+      properties:
+        slug: { type: string }
+        headline: { type: string }
+        published_on: { type: string, format: date }
+        body: { type: string }
+
+    NewsPage:
+      type: object
+      required: [items, total]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/NewsOut' }
+        total:
+          type: integer
+          minimum: 0
+          description: Total items available, so the interface can offer the rest (FR-016).
+
+    VacancyOut:
+      type: object
+      required: [slug, title, department, office_city, office_country, posted_on]
+      additionalProperties: false
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        department: { type: string }
+        office_city: { type: string }
+        office_country: { type: string, minLength: 2, maxLength: 2 }
+        posted_on: { type: string, format: date }
+
+    VacancyDetailOut:
+      type: object
+      required: [slug, title, department, office_city, office_country, posted_on, description]
+      additionalProperties: false
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        department: { type: string }
+        office_city: { type: string }
+        office_country: { type: string, minLength: 2, maxLength: 2 }
+        posted_on: { type: string, format: date }
+        description: { type: string }
+
+    ContactIn:
+      type: object
+      required: [sender_name, sender_email, subject, message]
+      additionalProperties: false
+      properties:
+        sender_name: { type: string, minLength: 1, maxLength: 120 }
+        sender_email: { type: string, format: email, minLength: 3, maxLength: 254 }
+        subject: { type: string, minLength: 1, maxLength: 150 }
+        message: { type: string, minLength: 1, maxLength: 4000 }
+
+    ContactAccepted:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [accepted]
+          description: >
+            No identifier of the stored row and no echo of the content. An anonymous writer gets
+            confirmation, not a handle.
+
+    ValidationProblem:
+      type: object
+      required: [title, status, errors]
+      additionalProperties: false
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            additionalProperties: false
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    Problem:
+      type: object
+      required: [title, status]
+      additionalProperties: false
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }

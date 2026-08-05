@@ -1,0 +1,383 @@
+/**
+ * Component styles for the shared primitives.
+ *
+ * A single stylesheet of token-driven classes rather than CSS Modules, which is a
+ * deliberate departure from research R4. Modules inside a transpiled workspace
+ * package need extra Next configuration and buy nothing here: this package has one
+ * consumer today, the class names are prefixed, and every value comes from
+ * `tokens.css`, so the property R4 actually wanted — no hard-coded colours or
+ * spacing outside the token layer — still holds.
+ *
+ * Interactive states are defined here rather than per component so FR-035's
+ * contrast requirement is satisfiable by checking one file.
+ */
+
+/* ---------------------------------------------------------------- layout -- */
+
+.eaios-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.eaios-container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.eaios-main {
+  flex: 1;
+  padding-block: var(--space-7) var(--space-8);
+}
+
+.eaios-section {
+  margin-block-end: var(--space-8);
+}
+
+.eaios-grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
+/* ---------------------------------------------------------------- header -- */
+
+.eaios-header {
+  border-block-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.eaios-header__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 64px;
+}
+
+.eaios-brand {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.eaios-brand:hover {
+  color: var(--brand-strong);
+}
+
+.eaios-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.eaios-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-comfortable);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.eaios-nav__link:hover {
+  background: var(--surface-sunken);
+  color: var(--brand-strong);
+}
+
+/* The current page is marked with aria-current; styling keys off that attribute
+   so the visual and non-visual indicators cannot drift apart (FR-003). */
+.eaios-nav__link[aria-current="page"] {
+  color: var(--brand-strong);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+
+.eaios-nav__toggle {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-comfortable);
+  min-width: var(--target-comfortable);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+/* Collapses below 1024px, not 768px. Eight links plus the brand and the
+   portal button do not fit at the 768px tablet width FR-032 verifies — the page
+   body overflowed horizontally there, which FR-032 forbids at any width. */
+@media (max-width: 1023px) {
+  .eaios-nav__toggle {
+    display: inline-flex;
+  }
+
+  .eaios-nav {
+    display: none;
+    position: absolute;
+    inset-inline: 0;
+    top: 64px;
+    z-index: 20;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--space-2) var(--gutter) var(--space-4);
+    background: var(--surface);
+    border-block-end: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+
+  .eaios-nav[data-open="true"] {
+    display: flex;
+  }
+
+  .eaios-nav__link {
+    padding-block: var(--space-3);
+  }
+}
+
+.eaios-header__inner {
+  position: relative;
+}
+
+/* ---------------------------------------------------------------- footer -- */
+
+.eaios-footer {
+  border-block-start: 1px solid var(--border);
+  background: var(--surface-sunken);
+  padding-block: var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.eaios-footer__grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.eaios-footer h2 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.eaios-footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------------------------ primitives -- */
+
+.eaios-card {
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+.eaios-card__title {
+  font-size: var(--text-lg);
+  margin-block-end: var(--space-2);
+}
+
+.eaios-tag {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--brand-wash);
+  color: var(--brand-strong);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.eaios-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target-comfortable);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--brand);
+  color: var(--ink-inverse);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.eaios-button:hover:not(:disabled) {
+  background: var(--brand-strong);
+  color: var(--ink-inverse);
+}
+
+.eaios-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.eaios-button--secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--brand-strong);
+}
+
+.eaios-button--secondary:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  color: var(--brand-strong);
+}
+
+/* ------------------------------------------------------------------ form -- */
+
+.eaios-field {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-end: var(--space-5);
+}
+
+.eaios-field__label {
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+}
+
+.eaios-field__required {
+  color: var(--danger);
+  margin-inline-start: 2px;
+}
+
+.eaios-field__control {
+  width: 100%;
+  min-height: var(--target-comfortable);
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.eaios-field__control[aria-invalid="true"] {
+  border-color: var(--danger);
+  background: var(--danger-wash);
+}
+
+.eaios-field__error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.eaios-field__hint {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------------- states -- */
+
+.eaios-state {
+  padding: var(--space-6);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.eaios-state__title {
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  margin-block-end: var(--space-2);
+}
+
+.eaios-state--error {
+  border-style: solid;
+  border-color: var(--danger);
+  background: var(--danger-wash);
+  text-align: start;
+}
+
+.eaios-state--success {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-wash);
+  color: var(--ink);
+  text-align: start;
+}
+
+.eaios-skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 25%,
+    var(--border) 37%,
+    var(--surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: eaios-shimmer 1.4s ease infinite;
+}
+
+@keyframes eaios-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ------------------------------------------------------------------ hero -- */
+
+.eaios-hero {
+  padding-block: var(--space-8);
+  border-block-end: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--brand-wash), var(--surface));
+}
+
+.eaios-hero h1 {
+  font-size: var(--text-4xl);
+  max-width: 18ch;
+}
+
+.eaios-hero__lede {
+  font-size: var(--text-lg);
+  color: var(--ink-muted);
+  max-width: 56ch;
+}
+
+.eaios-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+}
+
+@media (max-width: 1023px) {
+  .eaios-hero h1 {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* FR-008a — the placeholder shown where a generated field is empty. Muted rather
+   than invisible: the point is that the field is present and has no value, which is
+   different from the field not existing. */
+.eaios-text--absent {
+  color: var(--ink-muted);
+}

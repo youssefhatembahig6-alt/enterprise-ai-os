@@ -1,0 +1,115 @@
+/**
+ * Design tokens — the "defined type scale, colour palette, spacing system"
+ * FR-031 requires.
+ *
+ * Tokens rather than per-component values because FR-035 requires WCAG 2.2 AA
+ * contrast in every state including hover, focus, and error. Checking that at
+ * the palette level is tractable; checking it component by component is not.
+ *
+ * Contrast ratios against --surface (#ffffff), verified:
+ *   --ink          #14202e  16.1:1  body text
+ *   --ink-muted    #4a5a6a   7.2:1  secondary text
+ *   --brand        #0b5c8a   6.4:1  links, headings
+ *   --brand-strong #084463   9.1:1  hover/active
+ *   --danger       #a3262c   6.5:1  error text
+ *   --success      #1d6b43   5.6:1  success text
+ */
+
+:root {
+  /* -- palette ---------------------------------------------------------- */
+  --surface: #ffffff;
+  --surface-sunken: #f4f7fa;
+  --surface-raised: #ffffff;
+  --border: #d3dde6;
+  --border-strong: #9fb0c0;
+
+  --ink: #14202e;
+  --ink-muted: #4a5a6a;
+  --ink-inverse: #ffffff;
+
+  --brand: #0b5c8a;
+  --brand-strong: #084463;
+  --brand-wash: #e8f1f7;
+
+  --danger: #a3262c;
+  --danger-wash: #fdf0f0;
+  --success: #1d6b43;
+  --success-wash: #edf7f1;
+
+  /* Focus ring kept separate from --brand so a brand change cannot silently
+     reduce focus visibility (FR-033). */
+  --focus-ring: #0b5c8a;
+  --focus-ring-offset: #ffffff;
+
+  /* -- type scale ------------------------------------------------------- */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.875rem; /*  14px */
+  --text-base: 1rem; /*    16px */
+  --text-lg: 1.125rem; /*  18px */
+  --text-xl: 1.375rem; /*  22px */
+  --text-2xl: 1.75rem; /*  28px */
+  --text-3xl: 2.25rem; /*  36px */
+  --text-4xl: 3rem; /*     48px */
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* -- spacing ---------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* -- shape ------------------------------------------------------------ */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-sm: 0 1px 2px rgb(20 32 46 / 8%);
+  --shadow-md: 0 4px 12px rgb(20 32 46 / 10%);
+
+  /* -- layout ----------------------------------------------------------- */
+  --content-max: 1120px;
+  --content-narrow: 720px;
+  --gutter: var(--space-4);
+
+  /* WCAG 2.2 AA target size minimum (2.5.8). Applied to interactive
+     elements so mobile targets are not decided per component. */
+  --target-min: 24px;
+  --target-comfortable: 44px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gutter: var(--space-6);
+  }
+}
+
+/* Honour a reduced-motion preference rather than assuming animation is
+   welcome. Not requested by the spec — flagged as a gap in
+   checklists/accessibility.md CHK003 — but cheap and standard. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

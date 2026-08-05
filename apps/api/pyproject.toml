@@ -1,0 +1,20 @@
+[project]
+name = "eaios-api"
+version = "0.1.0"
+description = "FastAPI service — health, readiness, dataset provenance"
+requires-python = "==3.12.*"
+dependencies = [
+    "eaios-core",
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "alembic==1.14.0",
+    # Backs Pydantic's EmailStr on the public contact form (spec 002 FR-019).
+    "email-validator==2.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eaios_api"]

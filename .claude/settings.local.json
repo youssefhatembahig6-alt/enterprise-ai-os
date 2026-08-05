@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:/Users/youss/Downloads/Enterprise_AI_OS_EDITED.html\" && ls \"C:/Users/youss/Desktop/Grad_Project\")",
+      "Bash(mkdir -p \"C:/Users/youss/Desktop/Grad_Project/docs\" && cp \"C:/Users/youss/Downloads/Enterprise_AI_OS_EDITED.html\" \"C:/Users/youss/Desktop/Grad_Project/docs/Enterprise_AI_OS.html\" && ls -la \"C:/Users/youss/Desktop/Grad_Project/docs\")",
+      "PowerShell(& \"C:\\\\Users\\\\youss\\\\Desktop\\\\Grad_Project\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -PathsOnly)",
+      "PowerShell(& \"C:\\\\Users\\\\youss\\\\Desktop\\\\Grad_Project\\\\.specify\\\\scripts\\\\powershell\\\\setup-plan.ps1\" -Json)",
+      "PowerShell(& \"C:\\\\Users\\\\youss\\\\Desktop\\\\Grad_Project\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json)",
+      "PowerShell(& \"C:\\\\Users\\\\youss\\\\Desktop\\\\Grad_Project\\\\.specify\\\\scripts\\\\powershell\\\\setup-tasks.ps1\" -Json)",
+      "PowerShell(& \"C:\\\\Users\\\\youss\\\\Desktop\\\\Grad_Project\\\\.specify\\\\scripts\\\\powershell\\\\check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)",
+      "Bash(python -)",
+      "Bash(grep -E '^  [a-z-]+:$' infrastructure/docker-compose.yml)",
+      "Bash(npx --yes pnpm@9.15.4 install --lockfile-only)",
+      "Bash(PYTHONPATH=packages/core/src uv run python -m eaios_core.selfcheck)",
+      "Bash(PYTHONPATH=packages/core/src uv run python -c ' *)",
+      "Bash(docker compose *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" localhost:8000/health/ready)",
+      "Bash(curl -s localhost:8000/health/live)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" localhost:8000/dataset/manifest)",
+      "Bash(bash infrastructure/wait-for-healthy.sh)",
+      "Bash(POSTGRES_HOST=localhost uv run python -m pytest tests/integration -m integration -v)",
+      "Bash(POSTGRES_HOST=localhost uv run python -m pytest tests/unit tests/security tests/integration -q)",
+      "Bash(curl -s localhost:8000/health/ready)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['status'], '|', ', '.join\\(f\\\\\"{x['name']}={x['status']}\\\\\" for x in d['dependencies']\\)\\)\")",
+      "Bash(curl -s http://localhost:8000/health/ready)",
+      "Bash(python -m json.tool)",
+      "Bash(PYTHONPATH='packages/core/src;scripts/seed/src' uv run python -c ' *)",
+      "Bash(PYTHONPATH=\"packages/core/src;scripts/seed/src\" uv run python -m eaios_seed.cli fingerprint --profile smoke)",
+      "Bash(export POSTGRES_HOST=localhost REDIS_HOST=localhost QDRANT_HOST=localhost MINIO_ENDPOINT=localhost:9000)",
+      "Bash(PYTHONPATH=\"packages/core/src;scripts/seed/src\" uv run python -m eaios_seed.cli seed --profile smoke)",
+      "Bash(grep -vE \"^\\\\s*$\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(PYTHONPATH=\"packages/core/src;scripts/seed/src\" uv run python -m eaios_seed.cli reset)",
+      "Bash(PYTHONPATH=\"packages/core/src;scripts/seed/src\" uv run python -m eaios_seed.cli verify --profile smoke)"
+    ]
+  }
+}

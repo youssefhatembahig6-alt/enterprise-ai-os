@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+apps/web/dist/
+apps/web/.next/
+apps/web/next-env.d.ts
+apps/web/test-results/
+apps/web/playwright-report/
+packages/*/dist/
+*.tsbuildinfo
+
+# Environment — never commit real values (FR-006)
+.env
+.env.*
+!.env.example
+!infrastructure/.env.example
+
+# Docker volumes / local state
+infrastructure/.volumes/
+
+# Generated API client is committed deliberately; generated seed output is not
+scripts/seed/.out/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+*.log

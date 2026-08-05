@@ -1,0 +1,45 @@
+# Local development conveniences. Compose loads this automatically alongside
+# docker-compose.yml; CI passes only the base file so these mounts never apply there.
+
+services:
+  api:
+    # Source mounts + reload so an edit is visible without a rebuild.
+    volumes:
+      - ../packages/core/src:/app/packages/core/src:ro
+      - ../apps/api/src:/app/apps/api/src:ro
+      - ../apps/api/alembic:/app/apps/api/alembic:ro
+    command:
+      - uvicorn
+      - eaios_api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/apps/api/src
+      - --reload-dir
+      - /app/packages/core/src
+    environment:
+      LOG_JSON: "false" # human-readable logs are easier to read locally
+
+  worker:
+    volumes:
+      - ../packages/core/src:/app/packages/core/src:ro
+      - ../services/worker/src:/app/services/worker/src:ro
+    environment:
+      LOG_JSON: "false"
+
+  seed:
+    # Mounted so generator changes take effect without rebuilding the image.
+    # The image still pins the locale, which is what protects byte-identical
+    # output (spec FR-012a) — mounting source does not weaken that.
+    volumes:
+      - ../packages/core/src:/app/packages/core/src:ro
+      - ../scripts/seed/src:/app/scripts/seed/src:ro
+
+  web:
+    volumes:
+      - ../apps/web/src:/app/apps/web/src:ro
+      - ../packages/ui/src:/app/packages/ui/src:ro
+      - ../packages/contracts/src:/app/packages/contracts/src:ro

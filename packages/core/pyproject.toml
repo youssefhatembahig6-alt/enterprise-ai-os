@@ -1,0 +1,30 @@
+[project]
+name = "eaios-core"
+version = "0.1.0"
+description = "Shared domain: models, deterministic identifiers, fingerprinting, tenant key builders"
+requires-python = "==3.12.*"
+
+# Versions are pinned exactly, not floated. Generated content depends on library
+# data that changes between releases; an unpinned upgrade silently changes the
+# dataset and breaks the determinism guarantee (spec FR-012b).
+dependencies = [
+    "sqlalchemy==2.0.36",
+    "psycopg[binary]==3.2.3",
+    "pydantic==2.10.5",
+    "pydantic-settings==2.7.1",
+    "structlog==24.4.0",
+    "redis==5.2.1",
+    "qdrant-client==1.12.2",
+    "minio==7.2.13",
+    # Needed by `clients.stores.check_worker`, which reaches the background worker
+    # over the broker. The API depends on core and therefore gains it; the worker
+    # already declared it independently.
+    "celery[redis]==5.4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eaios_core"]

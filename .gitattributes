@@ -1,0 +1,39 @@
+# Determinism-critical: generated documents must be byte-identical across platforms.
+# Without this, Windows checkouts translate LF to CRLF, generated files differ by bytes,
+# and the dataset fingerprint diverges with no obvious cause. See spec FR-012a, FR-032.
+* text=auto eol=lf
+
+# Explicitly LF for everything the generator reads or writes
+*.py      text eol=lf
+*.pyi     text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.toml    text eol=lf
+*.md      text eol=lf
+*.sql     text eol=lf
+*.sh      text eol=lf
+*.j2      text eol=lf
+*.cfg     text eol=lf
+*.ini     text eol=lf
+Makefile  text eol=lf
+Dockerfile text eol=lf
+
+# Binary — never translate
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.pdf     binary
+*.woff    binary
+*.woff2   binary
+*.zip     binary
+*.gz      binary
+
+# Lockfiles: keep diffs clean, never mark as generated (we review them — FR-012b)
+uv.lock         text eol=lf
+pnpm-lock.yaml  text eol=lf

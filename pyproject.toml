@@ -1,0 +1,137 @@
+[project]
+name = "eaios"
+version = "0.1.0"
+description = "Enterprise AI Operating System — foundation monorepo"
+requires-python = "==3.12.*"
+
+# The four local packages (packages/core, apps/api, services/worker, scripts/seed)
+# each keep their own pyproject.toml — those are what the Docker images install.
+# Locally they are resolved through `tool.pytest.ini_options.pythonpath` below
+# rather than being built and installed, so a developer environment needs no build
+# step for first-party code. Versions are pinned exactly: generated content depends
+# on library data that changes between releases (spec FR-012b).
+dependencies = [
+    "sqlalchemy==2.0.36",
+    "psycopg[binary]==3.2.3",
+    "alembic==1.14.0",
+    # Backs Pydantic's EmailStr on the public contact form (spec 002 FR-019).
+    "email-validator==2.2.0",
+    "pydantic==2.10.5",
+    "pydantic-settings==2.7.1",
+    "structlog==24.4.0",
+    "redis==5.2.1",
+    "qdrant-client==1.12.2",
+    "minio==7.2.13",
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "celery[redis]==5.4.0",
+    "Faker==33.3.0",
+    "Jinja2==3.1.5",
+    "typer==0.15.1",
+]
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.2",
+    "httpx==0.28.1",
+    "ruff==0.9.2",
+    "mypy==1.14.1",
+]
+
+# ---------------------------------------------------------------------------
+# Lint / type configuration (T007)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["packages/core/src", "apps/api/src", "services/worker/src", "scripts/seed/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "T20", "SIM", "RUF"]
+# RUF002 flags en dashes and multiplication signs in prose; that check targets
+# identifier confusion, not documentation, and the characters are intentional here.
+ignore = ["E501", "RUF002"]
+
+[tool.ruff.lint.per-file-ignores]
+# The seed CLI legitimately prints to stdout — that output is a contract.
+# Typer expresses CLI defaults as call results in the signature; that is the
+# framework idiom, not a mutable-default bug.
+"scripts/seed/src/eaios_seed/cli.py" = ["T20", "B008"]
+# selfcheck is a CLI: its stdout is the fingerprint CI compares.
+"packages/core/src/eaios_core/selfcheck.py" = ["T20"]
+"tests/**" = ["DTZ", "S101"]
+# `Depends(...)` in a parameter default is the FastAPI idiom, not a mutable default.
+"apps/api/src/eaios_api/health/*.py" = ["B008"]
+"apps/api/src/eaios_api/public/*.py" = ["B008"]
+# `PgUUID` aliases a class that ruff reads as a constant because of its casing.
+"packages/core/src/eaios_core/models/*.py" = ["N811"]
+# Migrations use the same PgUUID alias as the models they mirror.
+"apps/api/alembic/versions/*.py" = ["N811"]
+# These shadow stdlib module names deliberately: they are the project's own
+# logging configuration and its platform-domain models, and renaming them would
+# make every import read worse than the shadowing costs.
+"packages/core/src/eaios_core/logging.py" = ["A005"]
+"packages/core/src/eaios_core/models/platform.py" = ["A005"]
+"apps/api/src/eaios_api/logging.py" = ["A005"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# En dashes and multiplication signs in prose are intentional. Flagging them as
+# "ambiguous" is aimed at identifier confusion, not documentation.
+[tool.ruff.lint.flake8-implicit-str-concat]
+allow-multiline = true
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+# Wall-clock access is banned in generation code (FR-012). Enforcement lives in
+# tests/unit/test_no_wallclock.py, which walks the AST of every file under
+# packages/core and scripts/seed — a lint rule cannot express the per-directory
+# exemption that the clock and manifest modules legitimately need.
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_untyped_defs = true
+mypy_path = [
+    "packages/core/src",
+    "apps/api/src",
+    "services/worker/src",
+    "scripts/seed/src",
+]
+
+[[tool.mypy.overrides]]
+module = ["faker.*", "qdrant_client.*", "minio.*", "celery.*", "structlog.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Test configuration (T016)
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "packages/core/src",
+    "apps/api/src",
+    "services/worker/src",
+    "scripts/seed/src",
+]
+markers = [
+    "unit: pure logic, no external services",
+    "integration: requires the Docker Compose stack",
+    "security: tenant isolation and access-control invariants",
+    "e2e: full clean-environment lifecycle",
+]
+addopts = "-ra --strict-markers"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::DeprecationWarning"]

@@ -1,0 +1,1384 @@
+<!-- Fresh downloadable copy generated: 2026-07-31T20:06:13.470621+00:00 -->
+<!-- Regenerated edited copy: 2026-07-31T20:04:47.513928+00:00 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise AI Operating System — The Full Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blueprint-deep: #0B2545;
+    --blueprint-mid: #13315C;
+    --blueprint-line: #8ECAE6;
+    --blueprint-line-dim: rgba(142,202,230,0.28);
+    --paper: #F5F3EC;
+    --paper-dim: #E7E3D6;
+    --ink: #14213D;
+    --ink-soft: #3C4A6B;
+    --amber: #FFB703;
+    --rust: #E85D3C;
+    --grid: rgba(142,202,230,0.10);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.65;
+  }
+
+  /* ---------- Layout ---------- */
+  .shell{ display:flex; min-height:100vh; }
+
+  nav.toc{
+    width:280px;
+    flex-shrink:0;
+    background:var(--blueprint-deep);
+    color:var(--paper);
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+    padding:28px 20px 40px;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:24px 24px;
+    border-right:2px solid var(--blueprint-line-dim);
+  }
+  nav.toc .brand{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    letter-spacing:0.02em;
+    color:var(--paper);
+    margin-bottom:4px;
+  }
+  nav.toc .brand-sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    color:var(--blueprint-line);
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    margin-bottom:26px;
+    display:block;
+  }
+  nav.toc ol{
+    list-style:none;
+    margin:0; padding:0;
+    counter-reset: sec;
+  }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    counter-increment: sec;
+    display:flex;
+    gap:10px;
+    align-items:baseline;
+    text-decoration:none;
+    color:rgba(245,243,236,0.75);
+    font-size:0.83rem;
+    padding:7px 8px;
+    border-radius:4px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a::before{
+    content: counter(sec, decimal-leading-zero);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:var(--blueprint-line);
+    flex-shrink:0;
+  }
+  nav.toc a:hover, nav.toc a.active{
+    background:rgba(142,202,230,0.14);
+    color:#fff;
+  }
+
+  main{
+    flex:1;
+    min-width:0;
+    max-width:920px;
+    padding:64px 72px 120px;
+  }
+
+  @media (max-width: 900px){
+    nav.toc{ display:none; }
+    main{ padding:40px 24px 100px; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    margin-bottom:64px;
+    padding-bottom:36px;
+    border-bottom:2px solid var(--ink);
+    position:relative;
+  }
+  .hero .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.15em;
+    text-transform:uppercase;
+    color:var(--rust);
+    display:block;
+    margin-bottom:14px;
+  }
+  .hero h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:2.6rem;
+    line-height:1.08;
+    font-weight:700;
+    margin:0 0 18px;
+    color:var(--blueprint-deep);
+  }
+  .hero p.lede{
+    font-size:1.08rem;
+    color:var(--ink-soft);
+    max-width:640px;
+    margin:0;
+  }
+
+  /* ---------- Sections ---------- */
+  section{
+    margin-bottom:76px;
+    scroll-margin-top: 24px;
+  }
+  section > .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--blueprint-mid);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  section > .kicker::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--paper-dim);
+  }
+  section h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:1.7rem;
+    font-weight:700;
+    color:var(--blueprint-deep);
+    margin:0 0 20px;
+  }
+  section h3{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:1.18rem;
+    font-weight:600;
+    color:var(--ink);
+    margin:30px 0 10px;
+  }
+  section h4{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.9rem;
+    color:var(--rust);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin:22px 0 8px;
+  }
+  p{ margin:0 0 14px; }
+  ul, ol.normal{ margin:0 0 16px; padding-left:22px; }
+  li{ margin-bottom:6px; }
+  strong{ color:var(--blueprint-deep); }
+
+  /* ---------- Analogy callout ---------- */
+  .analogy{
+    background:#fff;
+    border-left:4px solid var(--amber);
+    padding:14px 18px;
+    margin:16px 0 20px;
+    border-radius:2px;
+    font-size:0.96rem;
+  }
+  .analogy .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--amber);
+    display:block;
+    margin-bottom:4px;
+    font-weight:600;
+  }
+
+  /* ---------- Diagram / ASCII ---------- */
+  .blueprint{
+    background:var(--blueprint-deep);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:20px 20px;
+    border:1px solid var(--blueprint-line-dim);
+    border-radius:6px;
+    padding:22px 24px;
+    margin:18px 0 24px;
+    overflow-x:auto;
+  }
+  .blueprint pre{
+    margin:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.8rem;
+    line-height:1.5;
+    color:var(--blueprint-line);
+    white-space:pre;
+  }
+  .blueprint .caption{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    color:rgba(245,243,236,0.55);
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-top:10px;
+  }
+
+  /* ---------- Component cards ---------- */
+  .component{
+    background:#fff;
+    border:1px solid var(--paper-dim);
+    border-radius:8px;
+    padding:20px 22px;
+    margin-bottom:18px;
+  }
+  .component .name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:1.08rem;
+    color:var(--blueprint-deep);
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .component .name .idx{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color:var(--rust);
+  }
+  .component dl{ margin:0; }
+  .component dt{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--blueprint-mid);
+    margin-top:12px;
+  }
+  .component dt:first-of-type{ margin-top:0; }
+  .component dd{ margin:4px 0 0; }
+
+  /* ---------- Table ---------- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:14px 0 22px;
+    font-size:0.92rem;
+  }
+  th{
+    text-align:left;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--paper);
+    background:var(--blueprint-mid);
+    padding:10px 12px;
+  }
+  td{
+    padding:10px 12px;
+    border-bottom:1px solid var(--paper-dim);
+    vertical-align:top;
+  }
+  tr:nth-child(even) td{ background:rgba(142,202,230,0.06); }
+
+  /* ---------- Timeline ---------- */
+  .week{
+    display:grid;
+    grid-template-columns: 90px 1fr;
+    gap:16px;
+    padding:12px 0;
+    border-bottom:1px solid var(--paper-dim);
+  }
+  .week .wk-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    color:var(--rust);
+    font-weight:600;
+    padding-top:2px;
+  }
+  .week .wk-body strong{ display:block; margin-bottom:4px; }
+  .phase-header{
+    margin-top:34px;
+    margin-bottom:6px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    color:var(--blueprint-deep);
+    font-size:1.02rem;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .phase-header .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--amber);
+    flex-shrink:0;
+  }
+
+  /* ---------- Chat example blocks ---------- */
+  .scenario{
+    background:#fff;
+    border:1px solid var(--paper-dim);
+    border-radius:8px;
+    padding:0;
+    margin:20px 0 30px;
+    overflow:hidden;
+  }
+  .scenario .q{
+    background:var(--blueprint-deep);
+    color:var(--paper);
+    padding:14px 20px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:0.98rem;
+  }
+  .scenario .q .who{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    color:var(--blueprint-line);
+    display:block;
+    margin-bottom:4px;
+    letter-spacing:0.1em;
+  }
+  .scenario .steps{ padding:18px 22px 4px; }
+  .scenario .step{
+    display:grid;
+    grid-template-columns:130px 1fr;
+    gap:14px;
+    padding:10px 0;
+    border-bottom:1px dashed var(--paper-dim);
+    font-size:0.93rem;
+  }
+  .scenario .step:last-child{ border-bottom:none; }
+  .scenario .step .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--blueprint-mid);
+    padding-top:2px;
+  }
+  .scenario .answer{
+    background:var(--paper-dim);
+    padding:14px 22px;
+    font-size:0.93rem;
+    font-style:italic;
+    color:var(--ink);
+  }
+  .scenario .answer .who{
+    font-family:'IBM Plex Mono', monospace;
+    font-style:normal;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    color:var(--blueprint-mid);
+    display:block;
+    margin-bottom:4px;
+    letter-spacing:0.1em;
+  }
+
+  code{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--paper-dim);
+    padding:1px 5px;
+    border-radius:3px;
+    font-size:0.88em;
+    color:var(--blueprint-deep);
+  }
+
+  .top-link{
+    display:inline-block;
+    margin-top:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:var(--blueprint-mid);
+    text-decoration:none;
+  }
+
+  footer{
+    border-top:2px solid var(--ink);
+    padding-top:24px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <nav class="toc">
+    <span class="brand">Enterprise AI OS</span>
+    <span class="brand-sub">Graduation Project Blueprint</span>
+    <ol>
+      <li><a href="#big-picture">The Big Picture</a></li>
+      <li><a href="#story">The System As A Story</a></li>
+      <li><a href="#components">Every Component, Explained</a></li>
+      <li><a href="#ai-flow">The AI Flow, Step By Step</a></li>
+      <li><a href="#software-flow">The Software Flow</a></li>
+      <li><a href="#access-control">Access Control &amp; Demo Company</a></li>
+      <li><a href="#ai-part">What's Actually "AI" Here</a></li>
+      <li><a href="#automation">Chatbot vs RAG vs Agent</a></li>
+      <li><a href="#team">Team Responsibilities</a></li>
+      <li><a href="#timeline">5-Month Timeline</a></li>
+      <li><a href="#analogies">Concepts As Analogies</a></li>
+      <li><a href="#architecture">The Full Architecture</a></li>
+      <li><a href="#more-agentic">Optional Stretch Goals</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <span class="eyebrow">Mentoring Session — Read Start To Finish</span>
+      <h1>How Your Enterprise AI Operating System Actually Works</h1>
+      <p class="lede">Not a list of buzzwords. A single mental model you can hold in your head, built piece by piece — including how the system protects confidential company data, separates companies, and proves that every answer and action was authorized.</p>
+      <div class="analogy" style="margin-top:22px;border-left-color:var(--rust);"><span class="tag" style="color:var(--rust);">Updated Project Scope</span><strong>Access control and synthetic-company data are now core parts of this blueprint.</strong> See Section 06: Access Control, Multi-Tenancy &amp; The Demo Company.</div>
+    </div>
+
+    <!-- 1. BIG PICTURE -->
+    <section id="big-picture">
+      <span class="kicker">01 · Orientation</span>
+      <h2>The Big Picture</h2>
+
+      <p><strong>The problem you're solving:</strong> inside every mid-to-large company, knowledge is scattered and locked away. HR policy is a PDF nobody reads. Contracts sit in a shared drive. The sales numbers live in a database only the analytics team can query. The codebase only makes sense to whoever wrote it. Meeting notes evaporate into a Slack channel. Every employee who needs an answer has to know <em>where to look</em> and <em>who to ask</em> — and most don't, so they either guess, wait, or bother someone else.</p>
+
+      <p><strong>The security problem you're solving at the same time:</strong> connecting an AI to all of that knowledge can create a new risk. A normal employee must not retrieve payroll records, one department must not see another department's confidential files, and a user from Company A must never receive data belonging to Company B. Access control therefore cannot be a login screen added at the end — it must be part of retrieval, SQL queries, agent tool calls, caching, file access, and audit logging.</p>
+
+      <p>An Enterprise AI Operating System is the controlled layer that sits on top of scattered company knowledge and lets an employee just <em>ask</em>, in plain language, and get a correct, sourced, useful answer — or better, get the AI to actually go do the task — but only inside the exact data and action scope that employee is authorized to use.</p>
+
+      <h3>Why would a company actually pay for this?</h3>
+      <ul>
+        <li><strong>Time.</strong> Every "how many vacation days do I get" question that used to take a Slack message and a 20-minute wait now takes 3 seconds.</li>
+        <li><strong>Consistency.</strong> The AI always answers from the current policy document, not from what someone remembers from 2019.</li>
+        <li><strong>Leverage.</strong> One data engineer's SQL skill becomes queryable by every non-technical employee in the company.</li>
+        <li><strong>Institutional memory.</strong> When someone leaves the company, their knowledge doesn't leave with them — it's already indexed.</li>
+      </ul>
+
+      <h3>Why is this "more than a chatbot"?</h3>
+      <p>A chatbot answers questions using only what it was trained on, and it can't take action. Your system does three things a chatbot cannot:</p>
+      <ul>
+        <li>It <strong>retrieves</strong> live, private, constantly-changing company data before answering (RAG) — so it isn't guessing from stale training data.</li>
+        <li>It <strong>decides</strong> what steps a request actually requires and calls real tools to do them (agents, tool calling, planning) — a chatbot only talks; your system <em>acts</em>.</li>
+        <li>It <strong>checks itself</strong> before responding (hallucination checking, evaluation) — a chatbot has no idea whether it just made something up.</li>
+      </ul>
+
+      <h3>Why is it "an AI system" and not just "software that calls an API"?</h3>
+      <p>Because the intelligence isn't just "send text to GPT and print the reply." There's a pipeline of AI decisions happening: deciding <em>what kind</em> of question this is, deciding <em>which data source</em> answers it, deciding <em>whether a tool needs to run</em>, deciding <em>whether the answer is trustworthy enough to show the user</em>. Each of those is a small AI-driven decision. Stack enough of them together, orchestrated, and you get a system that behaves less like "autocomplete with a search bar" and more like a junior analyst who knows exactly where to look and what to do — that composition is what makes it a <em>system</em>, not a wrapper.</p>
+    </section>
+
+    <!-- 2. STORY -->
+    <section id="story">
+      <span class="kicker">02 · Walkthrough</span>
+      <h2>The System As A Story</h2>
+      <p>A company uploads its HR policies, contracts, sales database, GitHub repo, meeting notes, and support docs. Now four employees ask four very different questions. Watch what actually happens behind the scenes for each one — nothing skipped.</p>
+
+      <div class="scenario">
+        <div class="q"><span class="who">Employee asks</span>"How many vacation days do I get?"</div>
+        <div class="steps">
+          <div class="step"><div class="label">Type of question</div><div>Simple factual lookup against a static document. This is a textbook <strong>RAG</strong> case — no tools needed, no calculation needed.</div></div>
+          <div class="step"><div class="label">What runs first</div><div>The <strong>Planner/Orchestrator</strong> classifies intent: "informational, single-source, no action required." It routes straight to retrieval — it does not wake up any agent or tool.</div></div>
+          <div class="step"><div class="label">Which component works</div><div>The <strong>Embedding Model</strong> turns the question into a vector. The <strong>Vector Database (Qdrant)</strong> searches the HR policy chunks for the closest semantic matches — not keyword matches, meaning-matches, so "vacation days" also finds a section titled "Annual Leave Entitlement."</div></div>
+          <div class="step"><div class="label">What data it uses</div><div>Only the HR policy document chunks flagged for that employee's country/contract type (metadata filtering matters here — a US policy shouldn't answer an Egypt-based employee).</div></div>
+          <div class="step"><div class="label">What the AI is "thinking"</div><div>The <strong>LLM</strong> receives the question plus the 3–5 retrieved policy chunks as context, and is instructed: "answer only from the provided context, cite the source section, say 'I don't know' if it isn't there."</div></div>
+          <div class="step"><div class="label">Verification</div><div>The <strong>Hallucination Checker</strong> confirms every sentence in the draft answer is actually traceable to a retrieved chunk — not invented.</div></div>
+        </div>
+        <div class="answer"><span class="who">Final answer shown to user</span>"You're entitled to 21 paid vacation days per year, per the 2026 HR Policy, Section 4.2 — accrued monthly after your probation period."</div>
+      </div>
+
+      <div class="scenario">
+        <div class="q"><span class="who">Employee asks</span>"Generate last month's sales report."</div>
+        <div class="steps">
+          <div class="step"><div class="label">Type of question</div><div>Not a document-lookup question at all — it requires <strong>running a live query</strong> against a structured database and formatting the result. This is a <strong>tool-calling / agent</strong> case, not RAG.</div></div>
+          <div class="step"><div class="label">What runs first</div><div>The Planner recognizes this needs structured data, not unstructured text, and selects the <strong>SQL Tool / Database Agent</strong> instead of the vector retriever.</div></div>
+          <div class="step"><div class="label">Which component works</div><div>The agent generates a SQL query (e.g. aggregate revenue by product/region for the previous calendar month) against <strong>PostgreSQL</strong>, executes it through a controlled, read-only connection, and gets back rows.</div></div>
+          <div class="step"><div class="label">Why it works this way</div><div>You never let an LLM "guess" sales numbers — numbers must come from a real query. The LLM's job here is translating natural language into SQL and then translating the SQL result back into a readable narrative, not inventing figures.</div></div>
+          <div class="step"><div class="label">What the AI is "thinking"</div><div>"This is a data-retrieval + summarization task. Step 1: write query. Step 2: execute. Step 3: check result isn't empty/malformed. Step 4: summarize trends in plain language."</div></div>
+          <div class="step"><div class="label">Verification</div><div>The Evaluation Module checks the SQL didn't touch a forbidden table, and that the totals mentioned in the text actually match the numbers returned by the query (no rounding hallucinations).</div></div>
+        </div>
+        <div class="answer"><span class="who">Final answer shown to user</span>"June revenue was $482,300, up 6% vs May. EMEA led growth (+14%), driven mostly by the Enterprise tier. [Attached: sales_report_june.csv]"</div>
+      </div>
+
+      <div class="scenario">
+        <div class="q"><span class="who">Employee asks</span>"Explain the authentication module."</div>
+        <div class="steps">
+          <div class="step"><div class="label">Type of question</div><div>A code-comprehension question against the GitHub repository — RAG again, but over <em>code</em>, which is chunked and embedded differently than prose (by function/class, respecting syntax boundaries).</div></div>
+          <div class="step"><div class="label">What runs first</div><div>The Planner detects "code" intent (keywords, repo context, or explicit tool selection) and routes to the <strong>code-aware retriever</strong> rather than the general document retriever.</div></div>
+          <div class="step"><div class="label">Which component works</div><div>The Vector DB searches code embeddings for files/functions related to "authentication" — likely surfacing <code>auth_service.py</code>, <code>jwt_handler.py</code>, and related tests.</div></div>
+          <div class="step"><div class="label">What data it uses</div><div>Retrieved source files plus any docstrings/README sections describing the auth flow, and possibly recent commit messages for context on why something changed.</div></div>
+          <div class="step"><div class="label">What the AI is "thinking"</div><div>The LLM reads the retrieved code as context and is prompted to explain control flow in plain English: what triggers the module, what it validates, what it returns, what it depends on.</div></div>
+          <div class="step"><div class="label">Verification</div><div>The Hallucination Checker confirms function names, parameters, and behavior mentioned in the explanation actually exist in the retrieved source — it's very easy for an LLM to invent a plausible-sounding function that isn't real.</div></div>
+        </div>
+        <div class="answer"><span class="who">Final answer shown to user</span>"Authentication is handled in <code>auth_service.py</code>. It issues a signed JWT on login (<code>jwt_handler.py</code>), validated on every request by <code>verify_token()</code> middleware, which checks expiry and role claims before allowing access."</div>
+      </div>
+
+      <div class="scenario">
+        <div class="q"><span class="who">Employee asks</span>"Compare these two contracts."</div>
+        <div class="steps">
+          <div class="step"><div class="label">Type of question</div><div>Multi-document reasoning: needs both contracts retrieved <em>in full relevant context</em> and then compared clause-by-clause — a harder RAG case that may involve a short multi-step plan.</div></div>
+          <div class="step"><div class="label">What runs first</div><div>The Planner recognizes two named documents are involved and issues two retrieval calls, one per contract, rather than one generic search.</div></div>
+          <div class="step"><div class="label">Which component works</div><div>The Vector DB returns the most relevant clauses from <em>each</em> contract (payment terms, termination, liability, etc.), and the Orchestrator aligns matching clause types between the two sets before handing them to the LLM.</div></div>
+          <div class="step"><div class="label">What the AI is "thinking"</div><div>"For each clause category present in both documents, state what each contract says, then state the material difference." This is structured comparison, not free-form chat.</div></div>
+          <div class="step"><div class="label">Verification</div><div>The Hallucination Checker confirms every quoted clause or number is traceable to the specific contract cited — critical here, since contract mistakes have real legal consequences.</div></div>
+        </div>
+        <div class="answer"><span class="who">Final answer shown to user</span>"Termination: Contract A requires 30 days' notice; Contract B requires 90. Liability cap: A caps at $50K, B is uncapped. Payment terms are otherwise identical (net-30)."</div>
+      </div>
+    </section>
+
+    <!-- 3. COMPONENTS -->
+    <section id="components">
+      <span class="kicker">03 · Anatomy</span>
+      <h2>Every Component, Explained</h2>
+      <p>For each piece: what it is, why you need it, what breaks if you remove it, and how it talks to the rest of the system.</p>
+
+      <div class="component">
+        <div class="name"><span class="idx">01</span>Frontend</div>
+        <dl>
+          <dt>What it is</dt><dd>The web app the employee actually sees and types into — chat interface, file upload, dashboards, report viewers.</dd>
+          <dt>Why you need it</dt><dd>It's the only part of the system a human directly touches. Everything else exists to answer what the frontend asks on the user's behalf.</dd>
+          <dt>If removed</dt><dd>The system still "works" but only via raw API calls — unusable by a non-technical employee, which defeats the whole point.</dd>
+          <dt>How it communicates</dt><dd>Sends HTTP requests (usually with streaming for token-by-token responses) to the Backend/FastAPI layer, holds the auth token, renders whatever comes back (text, tables, charts, file links).</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">02</span>Backend (FastAPI)</div>
+        <dl>
+          <dt>What it is</dt><dd>The central Python service that exposes REST/streaming endpoints, handles auth, and coordinates every other component. FastAPI specifically because it's async-native (important — you'll be waiting on LLM calls, DB calls, and vector searches concurrently) and gives you automatic request validation and docs.</dd>
+          <dt>Why you need it</dt><dd>The frontend should never talk directly to the database, the vector store, or the LLM provider — that's a security and maintainability disaster. The backend is the single gatekeeper.</dd>
+          <dt>If removed</dt><dd>No system. This is the skeleton everything else hangs on.</dd>
+          <dt>How it communicates</dt><dd>Receives requests from the Frontend; calls the Orchestrator/Planner; queries PostgreSQL, Qdrant, and Redis; writes/reads Object Storage; calls the LLM provider; returns the final structured response.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">03</span>PostgreSQL</div>
+        <dl>
+          <dt>What it is</dt><dd>Your relational database of record: companies/tenants, users, departments, roles, permissions, resource ACLs, chat history, uploaded document metadata, HR/sales/business data, and allowed/denied audit logs.</dd>
+          <dt>Why you need it</dt><dd>Anything that needs strict structure, relationships, and transactional integrity (user A cannot see document B they don't have permission for) belongs here — not in a vector store.</dd>
+          <dt>If removed</dt><dd>No reliable user accounts, no permission model, no structured business data to query for the "sales report" scenario — the system becomes unsafe and stateless.</dd>
+          <dt>How it communicates</dt><dd>Queried directly by the Backend (via an ORM like SQLAlchemy) and by the SQL Tool that agents call during tool-calling for structured-data questions.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">04</span>Vector Database (Qdrant)</div>
+        <dl>
+          <dt>What it is</dt><dd>A database built to store embeddings (numeric fingerprints of meaning) and search by <em>similarity of meaning</em> rather than exact keyword match.</dd>
+          <dt>Why you need it</dt><dd>This is the engine behind RAG. Without it, the LLM has no way to find "the relevant paragraph out of 10,000 pages" — it would have to read everything, every time, which is slow, expensive, and eventually impossible (context limits).</dd>
+          <dt>If removed</dt><dd>No RAG at all. The system falls back to a plain chatbot that only knows generic training data — none of the company's private documents.</dd>
+          <dt>How it communicates</dt><dd>The Backend/Retriever sends it a query vector plus mandatory payload filters derived from the user's trusted access context. Qdrant returns only the top-K similar chunks that pass tenant, role, department, country, owner, and classification rules.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">05</span>Redis</div>
+        <dl>
+          <dt>What it is</dt><dd>An in-memory key-value store, used for caching and short-lived state — session data, rate limiting, caching recent query results, queuing background jobs.</dd>
+          <dt>Why you need it</dt><dd>LLM calls and vector searches are relatively slow and costly. If ten employees ask the same HR question in one morning, you don't want to re-run the whole pipeline ten times.</dd>
+          <dt>If removed</dt><dd>The system still functions, just slower and more expensive under load — every request pays full price, and there's no fast layer for session/job state.</dd>
+          <dt>How it communicates</dt><dd>Sits beside the Backend; the Backend checks Redis before running an expensive pipeline step, and writes results back into Redis with an expiry.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">06</span>Object Storage</div>
+        <dl>
+          <dt>What it is</dt><dd>Storage for raw files themselves — the original PDFs, docx contracts, spreadsheets — separate from the database (which stores metadata, not the files).</dd>
+          <dt>Why you need it</dt><dd>Databases are bad at storing large binary blobs efficiently. Object storage (S3-compatible, e.g. MinIO for a self-hosted setup) is built exactly for this, and lets you regenerate embeddings later without re-uploading.</dd>
+          <dt>If removed</dt><dd>You'd have nowhere durable to keep the original uploaded documents — only their chopped-up, embedded fragments, which is useless if you ever need to show or re-process the original file.</dd>
+          <dt>How it communicates</dt><dd>Backend writes uploaded files here on ingestion; the Ingestion Pipeline reads from here to chunk and embed; links are handed back to the Frontend so users can view/download originals.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">07</span>LLM (Large Language Model)</div>
+        <dl>
+          <dt>What it is</dt><dd>The reasoning and language-generation engine — the part that actually reads context and produces the natural-language answer, plan, or code.</dd>
+          <dt>Why you need it</dt><dd>Every other component gathers or verifies information; the LLM is what turns "here's a pile of relevant data" into "here's a clear, human-readable answer."</dd>
+          <dt>If removed</dt><dd>You'd have a very good search engine, but no natural-language understanding or generation — no chat, no summarization, no explanation.</dd>
+          <dt>How it communicates</dt><dd>Called by the Orchestrator/Planner and by individual agents, via API, with a prompt built from the user's question plus retrieved context plus tool results.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">08</span>Embedding Model</div>
+        <dl>
+          <dt>What it is</dt><dd>A smaller, specialized model whose only job is turning text (or code, or images) into a vector — a list of numbers representing meaning, positioned so similar meanings sit close together in that numeric space.</dd>
+          <dt>Why you need it</dt><dd>It's the translator that makes semantic search in the Vector Database possible at all. Without embeddings, "search" degenerates back into keyword matching.</dd>
+          <dt>If removed</dt><dd>No semantic search, no RAG — you're back to keyword/regex search over documents, which misses paraphrased questions entirely.</dd>
+          <dt>How it communicates</dt><dd>Runs during ingestion (embedding every document chunk once, stored in Qdrant) and at query time (embedding the user's question so it can be compared).</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">09</span>RAG (Retrieval-Augmented Generation)</div>
+        <dl>
+          <dt>What it is</dt><dd>Not a single tool — it's a <em>technique</em>: retrieve the most relevant real data first, then hand it to the LLM as context before asking it to answer.</dd>
+          <dt>Why you need it</dt><dd>It's how a general-purpose LLM (trained on public internet text) becomes an expert on <em>this specific company's</em> private, current documents — without retraining the model.</dd>
+          <dt>If removed</dt><dd>The LLM answers purely from what it memorized during training — it knows nothing about this company's HR policy, contracts, or codebase, and will confidently guess wrong.</dd>
+          <dt>How it communicates</dt><dd>Sits conceptually between the Vector DB (retrieval half) and the LLM (generation half); the Orchestrator wires these two steps together for every knowledge question.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">10</span>Fine-Tuning</div>
+        <dl>
+          <dt>What it is</dt><dd>Actually adjusting a model's internal weights on a custom dataset, so its default behavior/style/domain knowledge shifts — different from RAG, which only changes what context the model sees, not the model itself.</dd>
+          <dt>Why you need it</dt><dd>Useful for narrow, repeated tasks: teaching a small model your company's tone of voice, a strict output format, or a specialized classification (e.g. routing support tickets) — cheaper to run at scale than always relying on a giant general model.</dd>
+          <dt>If removed</dt><dd>You can still ship the whole product using only pre-trained models plus RAG — fine-tuning is an optimization, not a hard requirement for an MVP.</dd>
+          <dt>How it communicates</dt><dd>Happens offline/asynchronously (a training job, not a live request); the resulting fine-tuned model is then deployed and called just like any other model by the Orchestrator.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">11</span>Planner Agent</div>
+        <dl>
+          <dt>What it is</dt><dd>The component that looks at an incoming request and decides <em>what needs to happen</em> — one retrieval step? A database query? Several tools in sequence?</dd>
+          <dt>Why you need it</dt><dd>Not every question is a simple lookup. Some need multiple steps in a specific order (e.g. "compare two contracts" = retrieve A, retrieve B, then compare). The Planner is what makes the system capable of multi-step reasoning instead of one-shot replies.</dd>
+          <dt>If removed</dt><dd>Every request gets treated identically — you lose the ability to handle anything beyond a single flat RAG lookup.</dd>
+          <dt>How it communicates</dt><dd>Sits right after the Backend receives a request; outputs a plan/route that's handed to the Retriever and/or specific Tools; often implemented as a graph of steps (e.g. with LangGraph).</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">12</span>Tool Calling</div>
+        <dl>
+          <dt>What it is</dt><dd>The mechanism that lets an LLM say "I need to run this specific function with these arguments" instead of just generating text — e.g. <code>run_sql_query(query)</code>, <code>search_documents(query)</code>, <code>send_email(to, body)</code>.</dd>
+          <dt>Why you need it</dt><dd>This is what turns the system from "answers questions" into "does things." Without it, the LLM can only talk about the sales report; with it, it can actually go generate one.</dd>
+          <dt>If removed</dt><dd>No agents, no automation — the system reverts to a read-only Q&A chatbot with RAG, nothing more.</dd>
+          <dt>How it communicates</dt><dd>The LLM outputs a structured "call this function with these arguments" instruction; the Orchestrator executes the real function (hitting PostgreSQL, an API, a file system) and feeds the result back to the LLM for the final answer.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">13</span>AI Orchestrator</div>
+        <dl>
+          <dt>What it is</dt><dd>The conductor. It owns the full request lifecycle: receive question → consult Planner → run Retriever and/or Tools → assemble context → call the LLM → run verification → return result.</dd>
+          <dt>Why you need it</dt><dd>Without a single coordinating layer, every component would need to know about every other component — a tangled mess. The Orchestrator is the one place that knows the whole flow.</dd>
+          <dt>If removed</dt><dd>Every piece exists but nothing connects them — you'd need to manually wire retrieval, tools, and generation together inside the Backend itself, which quickly becomes unmaintainable.</dd>
+          <dt>How it communicates</dt><dd>Called by the Backend for every AI request; it in turn calls the Planner, Retriever, Tools, LLM, and Verifier, in whatever order the Planner decided.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">14</span>Authorization Policy Engine</div>
+        <dl>
+          <dt>What it is</dt><dd>The deterministic security layer that combines tenant membership, roles, permissions, department/country/ownership attributes, document classification, and exceptional resource ACLs.</dd>
+          <dt>Why you need it</dt><dd>Authentication only proves identity. This layer decides whether that identity may retrieve a chunk, read a row, download a file, call an agent tool, view a cached answer, or approve an action.</dd>
+          <dt>If removed</dt><dd>The AI may answer correctly but reveal the answer to the wrong person — a more serious enterprise failure than an ordinary hallucination.</dd>
+          <dt>How it communicates</dt><dd>The Backend builds a trusted access context and calls the engine before execution. The resulting scope becomes PostgreSQL filters/RLS context, Qdrant payload filters, Object Storage paths, Redis cache namespaces, and tool permissions. Denials are written to the audit log.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">15</span>Hallucination Checker</div>
+        <dl>
+          <dt>What it is</dt><dd>A verification step (often a second, cheaper LLM call, or a rule-based check) that compares the draft answer against the retrieved source material and flags claims that aren't actually supported.</dd>
+          <dt>Why you need it</dt><dd>LLMs generate fluent, confident-sounding text even when wrong. In an enterprise setting (contracts, HR policy, financial numbers), an unverified hallucination is a real liability, not just an annoyance.</dd>
+          <dt>If removed</dt><dd>The system will occasionally state confident, plausible-sounding facts that are simply false, with no safety net catching it before the user sees it.</dd>
+          <dt>How it communicates</dt><dd>Runs after the LLM produces a draft answer and before the Orchestrator returns it to the Backend; if it fails the check, the Orchestrator can retry retrieval, ask the LLM to revise, or return a cautious "I'm not confident" response.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">16</span>Evaluation Module</div>
+        <dl>
+          <dt>What it is</dt><dd>The offline/ongoing measurement system: how accurate are answers, how relevant is retrieval, how often do agents pick the right tool, tracked over time with test question sets and metrics.</dd>
+          <dt>Why you need it</dt><dd>Without measurement, you're guessing whether changes (new prompt, new model, new chunking strategy) made the system better or worse. This is also exactly what a graduation project committee will want to see as evidence the system genuinely works.</dd>
+          <dt>If removed</dt><dd>You have no way to prove quality objectively, no regression detection when you change something, and no data-driven way to improve retrieval or prompts.</dd>
+          <dt>How it communicates</dt><dd>Runs separately from live user traffic — a scheduled or manually-triggered process that replays a test set through the Orchestrator and scores the outputs, logging results to PostgreSQL/a dashboard.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">17</span>Scheduler / Background Worker</div>
+        <dl>
+          <dt>What it is</dt><dd>A job runner (e.g. Celery, with Redis as the task queue) that triggers the Orchestrator on a timer or an event — a new file upload, a database row change — instead of waiting for a user to type a message.</dd>
+          <dt>Why you need it</dt><dd>It's what turns the system from purely reactive into proactive: the weekly sales summary that's already waiting Monday morning, or the contract that gets auto-scanned for risky clauses the moment it's uploaded, without anyone having to ask.</dd>
+          <dt>If removed</dt><dd>The system can still do everything it does today, but only in response to a person typing a question — nothing ever runs on the company's behalf unprompted.</dd>
+          <dt>How it communicates</dt><dd>Calls the exact same Orchestrator entry point a live chat request would; the Orchestrator processes it identically either way, so nothing downstream needs to know the difference.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">18</span>Human Approval Gate</div>
+        <dl>
+          <dt>What it is</dt><dd>A checkpoint the Orchestrator passes through before executing any tool call that can't be undone (sending an email, deleting a record, editing a live document) — it pauses and waits for the user to explicitly confirm.</dd>
+          <dt>Why you need it</dt><dd>Tool calling gives the LLM the ability to act, not just talk — and an LLM's plan can be subtly wrong (wrong recipient, wrong record). This gate is the seatbelt: it costs one extra click, and it's what makes giving an AI real-world actions defensible rather than reckless.</dd>
+          <dt>If removed</dt><dd>Every action a plan decides on fires immediately with no human check — fine for read-only lookups, genuinely risky for anything that writes or sends.</dd>
+          <dt>How it communicates</dt><dd>Sits inside the Orchestrator, right after the Hallucination Checker passes and right before execution; the Backend exposes a small confirm/reject endpoint the Frontend calls, and the Orchestrator only proceeds once that confirmation comes back.</dd>
+        </dl>
+      </div>
+
+      <h3>The Multi-Agent Roster</h3>
+      <p>Underneath the single AI Orchestrator sits a set of narrow, specialist agents. The Orchestrator doesn't try to know everything itself — it routes each request to whichever of these actually owns that kind of work, then assembles their outputs into one answer.</p>
+
+      <div class="component">
+        <div class="name"><span class="idx">19</span>Orchestrator Agent (routes tasks)</div>
+        <dl>
+          <dt>What it is</dt><dd>The top-level agent in the multi-agent layer whose only job is reading an incoming request and handing it off to the one specialist agent — or sequence of agents — best suited to handle it.</dd>
+          <dt>Why you need it</dt><dd>Without a dedicated router, every specialist agent would need its own logic for deciding "is this mine to handle?" — messy and duplicated. One agent owning routing keeps every specialist narrow and focused.</dd>
+          <dt>If removed</dt><dd>Every request would need to guess for itself which specialist(s) apply, or you'd fall back to one giant agent trying to do every job at once — poorly.</dd>
+          <dt>How it communicates</dt><dd>Sits right beneath the Planner; receives the classified intent, calls the appropriate specialist agent(s) below, and stitches their individual outputs into one coherent reply.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">20</span>Knowledge Agent (RAG + documents)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that owns unstructured-document questions — HR policy, wikis, meeting notes — by wrapping the RAG pipeline (Embedding Model → Vector DB → cited chunks).</dd>
+          <dt>Why you need it</dt><dd>Document questions need semantic retrieval, not SQL or code parsing. Giving this its own agent keeps document grounding consistent no matter which other agents are also running.</dd>
+          <dt>If removed</dt><dd>Document-grounded answers would have to be re-implemented inside every other agent that occasionally needs a policy or doc lookup — duplicated retrieval logic everywhere.</dd>
+          <dt>How it communicates</dt><dd>Called by the Orchestrator Agent for knowledge-type intents; embeds the question, queries the Vector DB, and returns the top-K chunks with source citations.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">21</span>Database Agent (SQL and analytics)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that turns a natural-language question into a safe SQL query against structured data — sales, users, operational tables — and returns the analytics result.</dd>
+          <dt>Why you need it</dt><dd>Numbers live in rows and columns, not paragraphs. This needs a different tool (Tool Calling → SQL) than the Knowledge Agent's retrieval, and its own guardrails against destructive queries.</dd>
+          <dt>If removed</dt><dd>Structured-data questions ("what were Q3 sales by region?") would have no reliable path to an answer — the LLM would have to guess numbers instead of querying them.</dd>
+          <dt>How it communicates</dt><dd>Called by the Orchestrator Agent for analytics-type intents; uses Tool Calling to run read-only SQL against PostgreSQL and hands the result rows back for the final answer.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">22</span>Code Agent (GitHub analysis)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that reads and reasons about the codebase — explaining functions, spotting likely bugs, summarizing pull requests — by calling the GitHub API and/or a code-specific retriever.</dd>
+          <dt>Why you need it</dt><dd>Code has its own structure and context (imports, diffs, commit history) that a general document retriever handles poorly. This gives developer-facing questions a specialist built for that shape of data.</dd>
+          <dt>If removed</dt><dd>Code-related questions would fall to the generic Knowledge Agent, which has no real understanding of repos, diffs, or code structure — answers would be shallow or wrong.</dd>
+          <dt>How it communicates</dt><dd>Called by the Orchestrator Agent for code-related intents; calls the GitHub API as a tool and may query a code-specific index in the Vector DB before generating its answer.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">23</span>Legal Agent (contracts and compliance)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that extracts clauses from contracts, flags risky or non-compliant terms, and checks documents against known policy — the formal version of the "Contract Agent / Risk Agent" example used earlier in this doc.</dd>
+          <dt>Why you need it</dt><dd>Legal and compliance judgments carry real liability if wrong. A narrow agent with its own careful prompting and checks is safer than trusting a general-purpose answer.</dd>
+          <dt>If removed</dt><dd>Contract and compliance review would revert to a generic LLM response with no domain-specific risk-flagging — exactly the kind of confident-but-wrong answer this system is meant to prevent.</dd>
+          <dt>How it communicates</dt><dd>Called by the Orchestrator Agent for contract/compliance intents; often pulls supporting context via the Knowledge Agent, and anything it recommends as a binding action passes through the Human Approval Gate.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">24</span>Workflow Agent (automation and approvals)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that manages multi-step business processes — routing an approval through the right people, tracking where a request sits in a process — rather than just answering a single question.</dd>
+          <dt>Why you need it</dt><dd>Some tasks aren't one-shot lookups; they're state machines that span multiple steps and sometimes multiple days. This agent is what tracks and advances that state.</dd>
+          <dt>If removed</dt><dd>There'd be no way to model an ongoing, multi-step process — every request would need to be re-explained from scratch each time someone checks in on it.</dd>
+          <dt>How it communicates</dt><dd>Works alongside the Human Approval Gate and Scheduler/Background Worker; persists process state in PostgreSQL/Redis and triggers the next step once a condition (approval, timer, event) is met.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">25</span>Monitoring Agent (autonomous event detection)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that watches for events and anomalies proactively — a new upload, unusual database activity, a failed job — and decides whether they warrant action.</dd>
+          <dt>Why you need it</dt><dd>Not everything should wait for a person to ask. This agent is the system's "eyes open" layer, catching things worth flagging before anyone notices on their own.</dd>
+          <dt>If removed</dt><dd>The system stays purely reactive — nothing gets caught or escalated unless a human happens to go looking for it first.</dd>
+          <dt>How it communicates</dt><dd>Triggered by the Scheduler/Background Worker or event hooks; when it detects something worth acting on, it calls the relevant specialist agent (e.g. handing a newly uploaded contract to the Legal Agent) or alerts a human.</dd>
+        </dl>
+      </div>
+
+      <div class="component">
+        <div class="name"><span class="idx">26</span>Report Agent (dashboards, summaries, presentations)</div>
+        <dl>
+          <dt>What it is</dt><dd>The specialist that takes whatever other agents produced — SQL rows, retrieved chunks, flagged clauses — and assembles it into a polished, human-facing deliverable: a dashboard, a written summary, or a slide deck.</dd>
+          <dt>Why you need it</dt><dd>Raw agent output isn't something a person wants handed to them directly. A dedicated formatting/presentation specialist is what turns "data" into "something you'd actually send to your boss."</dd>
+          <dt>If removed</dt><dd>Users would get raw rows, chunks, or bullet points back instead of a coherent, presentable result — technically correct, practically unusable.</dd>
+          <dt>How it communicates</dt><dd>Called last in a plan, after the Database, Knowledge, Legal, or other agents return their findings; formats the combined result for whatever the Frontend needs to render (chat, dashboard widget, or exportable file).</dd>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 4. AI FLOW -->
+    <section id="ai-flow">
+      <span class="kicker">04 · Trace</span>
+      <h2>The AI Flow — From Enter Key To Answer</h2>
+      <div class="blueprint">
+<pre>
+   USER
+    │  types: "Compare these two contracts"
+    ▼
+ FRONTEND
+    │  sends question + auth token, opens a streaming connection
+    ▼
+ BACKEND (FastAPI)
+    │  validates auth, checks Redis cache for an identical recent
+    │  question → cache miss → forwards to Orchestrator
+    ▼
+ AI ORCHESTRATOR
+    │  owns this request end-to-end
+    ▼
+ PLANNER
+    │  classifies intent → "multi-document comparison"
+    │  builds a 2-step plan: retrieve(doc A), retrieve(doc B)
+    ▼
+ RETRIEVER  ──────►  EMBEDDING MODEL  ──────►  VECTOR DB (Qdrant)
+    │  question embedded → top-K relevant chunks pulled per doc
+    ▼
+ (if the plan needed one: TOOL CALLING → PostgreSQL / APIs)
+    ▼
+ LLM
+    │  receives: question + retrieved chunks + tool results
+    │  generates a draft, structured, cited answer
+    ▼
+ HALLUCINATION CHECKER
+    │  cross-checks every claim against retrieved chunks
+    ▼
+ fails? ──► SELF-CORRECTION LOOP ──► back to Planner/Retriever
+    │        (broader search, revised query, or a re-asked LLM
+    │         pass — never shown to the user until it passes)
+    ▼ passes
+ IRREVERSIBLE ACTION? ──yes──► HUMAN APPROVAL GATE ──► user confirms
+    │ no                                                    │
+    ▼◄───────────────────────────────────────────────────────┘
+ ORCHESTRATOR
+    │  assembles final payload (answer + citations + sources)
+    ▼
+ BACKEND
+    │  logs interaction to PostgreSQL, updates Redis cache
+    ▼
+ FRONTEND
+    │  streams the answer to the screen, token by token
+    ▼
+   USER
+        sees the final, cited comparison
+</pre>
+      </div>
+      <p>The key thing to notice: the LLM is only <em>one box</em> in this chain, and it's deliberately positioned in the middle — never at the start (it doesn't get to decide the plan alone) and never at the end unchecked. Two extra gates now sit between the LLM and the user: the <strong>self-correction loop</strong>, which sends a failed check back into the pipeline instead of forward to the user, and the <strong>human approval gate</strong>, which only fires for actions that can't be undone (an email sent, a record changed) — most questions, like this contract comparison, skip it entirely and go straight through.</p>
+    </section>
+
+    <!-- 5. SOFTWARE FLOW -->
+    <section id="software-flow">
+      <span class="kicker">05 · Engineering View</span>
+      <h2>The Same Journey, As A Software Engineer Sees It</h2>
+
+      <h3>1. Authentication</h3>
+      <p>The Frontend attaches a JWT (issued at login) to every request. The Backend verifies the signature and expiry on every call, and looks up the user's role/permissions in PostgreSQL — this is what later restricts which documents can even be retrieved for that user.</p>
+
+      <h3>2. Authorization context</h3>
+      <p>After identity is verified, the Backend builds a trusted access context containing <code>company_id</code>, user ID, department, country, roles, permissions, manager relationships, and resource ownership. This context is passed to the Orchestrator and converted into deterministic database, vector-search, storage, and tool filters.</p>
+
+      <h3>3. API call</h3>
+      <p>The Frontend calls something like <code>POST /api/chat</code> with the message and conversation ID. FastAPI validates the request body against a Pydantic schema before anything else runs — malformed input never reaches business logic.</p>
+
+      <h3>4. Caching check</h3>
+      <p>The Backend hashes the normalized question (plus user's permission scope) and checks Redis. A hit returns instantly. A miss proceeds to the full pipeline — this alone can cut cost and latency dramatically for common questions like the vacation-days example.</p>
+
+      <h3>5. Vector search</h3>
+      <p>The Retriever service calls the Embedding Model to vectorize the query, then issues a similarity search against Qdrant, filtered by metadata (document type, department, permission tags) so a user only ever retrieves chunks they're authorized to see.</p>
+
+      <h3>6. Database operations</h3>
+      <p>For structured questions, an agent generates parameterized SQL (never raw string interpolation — that's an injection risk) and executes it through a restricted, read-only database role.</p>
+
+      <h3>7. File storage</h3>
+      <p>Original uploaded files stay in Object Storage; PostgreSQL stores only metadata (filename, uploader, permissions, storage path, ingestion status). This separation keeps the database fast and the file layer independently scalable.</p>
+
+      <h3>8. Response generation & streaming</h3>
+      <p>The Backend streams the LLM's tokens to the Frontend over Server-Sent Events or WebSockets rather than waiting for the full answer — this is what makes the UI feel responsive instead of frozen for several seconds.</p>
+
+      <h3>9. Logging</h3>
+      <p>Every interaction (question, retrieved sources, final answer, latency, model used) gets written to PostgreSQL — this log is what your Evaluation Module and your graduation-project metrics will be built on.</p>
+
+      <h3>10. Approval gate (irreversible actions only)</h3>
+      <p>If the plan includes an action that can't be undone — sending an email, writing to a live document, deleting a record — the Backend stops just short of executing it and exposes a small <code>POST /api/actions/{id}/confirm</code> endpoint. The Frontend shows a confirmation prompt; nothing fires until the user taps confirm. Read-only actions (a SQL <code>SELECT</code>, a document retrieval) never touch this gate — it only exists for the small subset of tool calls that write.</p>
+
+      <h3>11. Scheduled execution</h3>
+      <p>Separately from any user request, a Celery worker (backed by Redis as the task queue) wakes up on a cron schedule or a storage event (e.g. a new file landing in Object Storage) and calls the exact same Orchestrator entry point a user's message would — the Orchestrator has no idea whether it was triggered by a person typing or a timer firing, which is exactly what keeps this simple to build.</p>
+    </section>
+
+    <!-- 6. ACCESS CONTROL & DEMO COMPANY -->
+    <section id="access-control">
+      <span class="kicker">06 · Security &amp; Data Strategy</span>
+      <h2>Access Control, Multi-Tenancy &amp; The Demo Company</h2>
+
+      <p>This is now a <strong>core project capability</strong>, not a side feature. The system must answer two questions before every retrieval, query, download, or agent action:</p>
+      <ol class="normal">
+        <li><strong>Who is the user?</strong> Authentication establishes identity.</li>
+        <li><strong>Is this user allowed to access this resource or perform this action?</strong> Authorization makes the actual security decision.</li>
+      </ol>
+
+      <div class="analogy">
+        <span class="tag">Selected MVP Direction</span>
+        Build a fictional company called <strong>NileTech Solutions</strong>, plus a second small tenant called <strong>Delta Retail Group</strong> for isolation tests. Use FastAPI-issued JWTs for authentication, PostgreSQL for roles and policies, and a combined <strong>RBAC + ABAC</strong> authorization model. Generate the data with deterministic scripts so the full demo can be recreated at any time. Keycloak remains an optional later replacement for the login/identity layer, not an MVP dependency.
+      </div>
+
+      <h3>The access-control model</h3>
+      <p>The strongest practical design is a layered model rather than one giant <code>is_admin</code> flag:</p>
+
+      <table>
+        <tr><th>Layer</th><th>What it controls</th><th>Example</th></tr>
+        <tr><td><strong>Multi-tenancy</strong></td><td>Separates one company's records, files, vectors, cache entries, and logs from every other company.</td><td>A NileTech employee can never retrieve a Delta Retail document, even if the document text is semantically identical.</td></tr>
+        <tr><td><strong>RBAC</strong><br>Role-Based Access Control</td><td>Grants broad capabilities through roles.</td><td>An HR role receives <code>hr:read_all</code>; an Employee receives only <code>hr:read_self</code>.</td></tr>
+        <tr><td><strong>ABAC</strong><br>Attribute-Based Access Control</td><td>Adds conditions based on department, country, ownership, classification, employment type, or manager relationship.</td><td>A manager can view leave summaries only for users whose <code>manager_id</code> equals that manager's user ID.</td></tr>
+        <tr><td><strong>Resource ACL</strong></td><td>Handles exceptional access for one document, folder, contract, or project.</td><td>A Legal user is explicitly added as a reviewer for one restricted supplier contract.</td></tr>
+        <tr><td><strong>Human approval</strong></td><td>Protects irreversible actions after authorization has already passed.</td><td>A user may have permission to draft an email, but sending it still requires explicit confirmation.</td></tr>
+      </table>
+
+      <h3>Roles for the first version</h3>
+      <table>
+        <tr><th>Role</th><th>Default scope</th><th>Representative capabilities</th></tr>
+        <tr><td><strong>Platform Admin</strong></td><td>System configuration across tenants, without automatic business-data access.</td><td>Provision a company, inspect service health, manage tenant configuration.</td></tr>
+        <tr><td><strong>Company Admin</strong></td><td>One company only.</td><td>Manage users, roles, departments, document classifications, and access reviews.</td></tr>
+        <tr><td><strong>Employee</strong></td><td>General internal content plus owned records.</td><td>Read company policies, view own HR profile, ask general RAG questions.</td></tr>
+        <tr><td><strong>Manager</strong></td><td>Employee access plus direct-report scope.</td><td>View team leave summaries, approve team requests, access department documents.</td></tr>
+        <tr><td><strong>HR</strong></td><td>HR documents and employee records inside the same tenant.</td><td>Search HR policies, inspect employee records, generate HR reports.</td></tr>
+        <tr><td><strong>Finance</strong></td><td>Financial and sales data.</td><td>Run read-only financial queries and generate monthly reports.</td></tr>
+        <tr><td><strong>Legal</strong></td><td>Contracts and compliance resources.</td><td>Compare contracts, review clauses, flag risks.</td></tr>
+        <tr><td><strong>Auditor</strong></td><td>Read-only evidence.</td><td>Read audit logs, access approved reports, inspect authorization decisions.</td></tr>
+      </table>
+
+      <h3>Permission vocabulary</h3>
+      <p>Roles are collections of small permissions. The Backend and every agent tool check these codes rather than checking role names directly.</p>
+      <div class="blueprint">
+<pre>
+documents:read          documents:upload       documents:delete
+hr:read_self            hr:read_team           hr:read_all
+hr:update               sales:read             finance:read
+contracts:read          reports:generate       users:manage
+roles:manage            actions:approve        audit:read
+communications:draft    communications:send
+</pre>
+        <div class="caption">Permission names stay stable even when the company later creates custom roles.</div>
+      </div>
+
+      <h3>The authorization decision, step by step</h3>
+      <div class="blueprint">
+<pre>
+USER REQUEST + JWT
+        │
+        ▼
+AUTHENTICATION
+verify signature · expiry · active user · tenant membership
+        │
+        ▼
+BUILD ACCESS CONTEXT
+company_id · roles · permissions · department_id · country
+manager relationships · employment type · resource ownership
+        │
+        ▼
+POLICY ENGINE
+Is the action permitted? Is the resource in the same tenant?
+Do department / country / ownership / classification rules pass?
+        │
+        ├── DENY ──► return 403 + write denied audit event
+        │
+        ▼ ALLOW
+SCOPED EXECUTION
+apply PostgreSQL row filters · Qdrant payload filters · storage path
+restrictions · tool permission checks · permission-aware cache key
+        │
+        ▼
+OPTIONAL HUMAN APPROVAL
+only for a permitted action that writes, sends, deletes, or publishes
+        │
+        ▼
+EXECUTE + AUDIT
+store actor · tenant · action · resource · decision · reason · sources
+</pre>
+      </div>
+
+      <h3>PostgreSQL schema additions</h3>
+      <p>Every business record carries a <code>company_id</code>. Sensitive resources also carry ownership, department, location, and classification fields.</p>
+      <div class="blueprint">
+<pre>
+companies(id, name, domain, status)
+departments(id, company_id, name, manager_id)
+users(id, company_id, department_id, manager_id, email,
+      password_hash, country, employment_type, is_active)
+roles(id, company_id, name)
+permissions(id, code, description)
+user_roles(user_id, role_id)
+role_permissions(role_id, permission_id)
+
+documents(id, company_id, department_id, owner_id, title,
+          storage_key, classification, country, document_type)
+document_acl(document_id, principal_type, principal_id, permission)
+
+audit_logs(id, company_id, user_id, action, resource_type,
+           resource_id, decision, reason, created_at)
+</pre>
+      </div>
+
+      <p>Enable PostgreSQL Row-Level Security on the most sensitive tables. Application filters remain necessary for clear behavior and performance, while database policies become the final safety net if an application query accidentally forgets a tenant condition.</p>
+
+      <h3>Permission-aware RAG</h3>
+      <p>Each Qdrant chunk must be stored with access metadata. The retriever applies filters <strong>before</strong> semantic search results are returned:</p>
+      <div class="blueprint">
+<pre>
+{
+  "company_id": "niletech",
+  "document_id": "doc_981",
+  "department_id": "hr",
+  "country": "EG",
+  "classification": "CONFIDENTIAL",
+  "allowed_roles": ["hr", "company_admin"],
+  "owner_id": "user_142"
+}
+</pre>
+        <div class="caption">Security rule: unauthorized chunks never enter the LLM context window.</div>
+      </div>
+
+      <p>The ingestion pipeline is responsible for attaching this metadata to every chunk. The query pipeline receives an already-built access context from the Backend and converts it into Qdrant filters. The LLM is never asked to decide which confidential text it should hide; data that fails the policy is never retrieved.</p>
+
+      <h3>Agents and tools must also be authorized</h3>
+      <table>
+        <tr><th>Tool</th><th>Required permission</th><th>Mode</th><th>Approval?</th></tr>
+        <tr><td><code>search_company_documents</code></td><td><code>documents:read</code></td><td>Read</td><td>No</td></tr>
+        <tr><td><code>get_my_leave_balance</code></td><td><code>hr:read_self</code></td><td>Read</td><td>No</td></tr>
+        <tr><td><code>get_team_leave_summary</code></td><td><code>hr:read_team</code> + manager relationship</td><td>Read</td><td>No</td></tr>
+        <tr><td><code>query_payroll</code></td><td><code>hr:read_all</code></td><td>Read</td><td>No</td></tr>
+        <tr><td><code>draft_email</code></td><td><code>communications:draft</code></td><td>Prepare</td><td>No</td></tr>
+        <tr><td><code>send_email</code></td><td><code>communications:send</code></td><td>Write</td><td>Yes</td></tr>
+        <tr><td><code>delete_document</code></td><td><code>documents:delete</code></td><td>Delete</td><td>Yes</td></tr>
+      </table>
+
+      <p>The Orchestrator may propose a tool, but a deterministic authorization function decides whether it can run. The model never grants itself permission.</p>
+
+      <h3>Cache, file, and log isolation</h3>
+      <ul>
+        <li><strong>Redis:</strong> cache keys include <code>company_id</code>, a user or permission fingerprint, the normalized question, and the data/document version. A response generated for HR can never be reused for an Employee.</li>
+        <li><strong>Object Storage:</strong> keys begin with the tenant and classification, for example <code>niletech/hr/restricted/payroll-2026.xlsx</code>. Download URLs are short-lived and created only after an authorization check.</li>
+        <li><strong>Audit Log:</strong> records allowed and denied attempts, retrieved document IDs, SQL tool usage, approvals, exports, changes to roles, and policy versions.</li>
+      </ul>
+
+      <h3>Demo company strategy — no private real-company data required</h3>
+      <p>A public company website does not normally expose payroll, HR files, contracts, meeting notes, or internal sales tables, so attaching the project to a real company would still leave the most important use cases empty. It can also create privacy and authorization problems. The recommended graduation-project approach is a coherent, fictional enterprise generated from one data model.</p>
+
+      <div class="component">
+        <div class="name"><span class="idx">DEMO</span>NileTech Solutions</div>
+        <dl>
+          <dt>Company profile</dt><dd>A software and business-automation company operating in Cairo, Alexandria, and Dubai, with approximately 200 employees.</dd>
+          <dt>Departments</dt><dd>Engineering, HR, Sales, Finance, Legal, Customer Support, Operations, and Executive Management.</dd>
+          <dt>Public site</dt><dd>Home, About, Services, Products, Leadership, Careers, News, and Contact. This creates a believable outward-facing company identity.</dd>
+          <dt>Private portal</dt><dd>AI Assistant, My HR Profile, Leave Requests, Documents, Reports, Contracts, Company Directory, Approvals, Administration, and Audit Log.</dd>
+          <dt>Second tenant</dt><dd>Delta Retail Group contains a smaller set of users and documents used specifically to prove cross-company isolation.</dd>
+        </dl>
+      </div>
+
+      <h3>Generated dataset</h3>
+      <table>
+        <tr><th>Area</th><th>Generated records</th><th>AI scenarios enabled</th></tr>
+        <tr><td><strong>HR</strong></td><td>Employees, departments, managers, job titles, salary bands, leave balances, leave requests, attendance summaries, training, performance reviews.</td><td>Policy Q&amp;A, own-data lookup, team summaries, HR analytics, denied salary-access tests.</td></tr>
+        <tr><td><strong>Documents</strong></td><td>Employee handbook, leave policy, remote-work policy, expense policy, security policy, code of conduct, travel policy, benefits guide.</td><td>Permission-aware RAG with citations and country/department filters.</td></tr>
+        <tr><td><strong>Sales &amp; Finance</strong></td><td>Customers, products, sales reps, orders, invoices, targets, regions, expenses, budgets, and monthly revenue.</td><td>SQL agent, monthly reports, trend explanations, charts and exports.</td></tr>
+        <tr><td><strong>Legal</strong></td><td>Customer contracts, supplier agreements, NDAs, employment templates, compliance checklists, and approval records.</td><td>Contract comparison, clause extraction, restricted-document access.</td></tr>
+        <tr><td><strong>Operations</strong></td><td>Support tickets, project records, meeting notes, internal announcements, onboarding tasks, product documentation.</td><td>Knowledge search, summaries, routing and workflow-agent scenarios.</td></tr>
+        <tr><td><strong>Code</strong></td><td>A small synthetic repository with authentication, leave, reporting, and notification modules.</td><td>Code-aware RAG and the authentication-module explanation demo.</td></tr>
+      </table>
+
+      <p>Generate records with a seeded Python/Faker script so everyone on the team receives identical IDs and relationships. Generate company documents from templates that reference those same departments, countries, roles, and policies. This coherence matters: a leave policy mentioning 21 days must match the leave balances and answers shown elsewhere in the system.</p>
+
+      <h3>Access-control acceptance tests</h3>
+      <table>
+        <tr><th>Test request</th><th>Expected decision</th><th>What it proves</th></tr>
+        <tr><td>Employee asks for the general vacation policy.</td><td>Allow</td><td>Normal internal RAG works.</td></tr>
+        <tr><td>Employee asks for their own leave balance.</td><td>Allow</td><td>Ownership/self-service rule works.</td></tr>
+        <tr><td>Employee asks for another employee's salary.</td><td>Deny before SQL or retrieval.</td><td>Sensitive-record protection works.</td></tr>
+        <tr><td>Manager asks for direct reports' leave summary.</td><td>Allow only for direct reports.</td><td>Relationship-based ABAC works.</td></tr>
+        <tr><td>Manager asks for another department's employee records.</td><td>Deny.</td><td>Department boundary works.</td></tr>
+        <tr><td>Legal compares two contracts assigned to Legal.</td><td>Allow with citations.</td><td>Restricted multi-document RAG works.</td></tr>
+        <tr><td>NileTech user searches for a distinctive Delta Retail document phrase.</td><td>Return no Delta source or content.</td><td>Tenant isolation works even under semantic search.</td></tr>
+        <tr><td>Authorized agent proposes sending a report by email.</td><td>Pause for confirmation.</td><td>Authorization and human approval remain separate controls.</td></tr>
+      </table>
+
+      <p><strong>Primary security metric:</strong> unauthorized information leakage rate must remain <strong>0%</strong> across the fixed access-control test set. Also report authorization precision, denied-request correctness, tenant-isolation success, and the percentage of irreversible actions that correctly triggered approval.</p>
+    </section>
+
+    <!-- 7. AI PART -->
+    <section id="ai-part">
+      <span class="kicker">07 · Honesty Check</span>
+      <h2>What Is Actually "AI" In This Project</h2>
+      <p>This is the section that separates a real graduation project from "we called the ChatGPT API." Be explicit about this in your proposal and defense.</p>
+
+      <table>
+        <tr><th>Role</th><th>Model type</th><th>Trained by you?</th><th>Example</th></tr>
+        <tr><td>Main reasoning / answer generation</td><td>Pre-trained LLM (used via API or self-hosted open-weight model)</td><td>No — used as-is, or lightly fine-tuned</td><td>A hosted frontier model, or an open-weight model like Llama/Mistral/Qwen if self-hosted</td></tr>
+        <tr><td>Retrieval (turning text into vectors)</td><td>Pre-trained embedding model</td><td>No — used as-is</td><td>An open-weight sentence-embedding model, or a hosted embeddings API</td></tr>
+        <tr><td>Domain-specific tone/format/classification</td><td>Fine-tuned small model</td><td><strong>Yes</strong> — this is your real "we trained a model" claim</td><td>Fine-tuning a small open-weight model on company-tone examples, or on labeled support-ticket categories</td></tr>
+        <tr><td>Planning (deciding what steps to take)</td><td>Pre-trained LLM, prompted for structured decision-making</td><td>No — engineered via prompting/graph logic (e.g. LangGraph), not retrained</td><td>Same base LLM, specialized role via system prompt + tool schema</td></tr>
+        <tr><td>Verification / hallucination checking</td><td>Pre-trained LLM (often a smaller/cheaper one) or a trained classifier</td><td>Optional — a simple trained classifier here is a great, achievable "we trained a model" story</td><td>A lightweight trained classifier scoring "supported / not supported" per claim</td></tr>
+      </table>
+
+      <p>Be honest with your committee: most of the "intelligence" comes from <strong>pre-trained</strong> models used skillfully (good prompting, good retrieval, good orchestration). Your genuine, demonstrable "we did machine learning" contribution should be the <strong>fine-tuned classification or tone model</strong>, plus the <strong>evaluation methodology</strong> proving your RAG pipeline retrieves accurately. That combination — engineering plus a real, measured fine-tuning result — is a strong, honest, defensible AI story.</p>
+    </section>
+
+    <!-- 8. AUTOMATION -->
+    <section id="automation">
+      <span class="kicker">08 · Vocabulary</span>
+      <h2>Chatbot vs RAG vs Agent vs Workflow vs Multi-Agent</h2>
+
+      <table>
+        <tr><th>Term</th><th>What it actually means</th><th>Real example</th></tr>
+        <tr><td><strong>Chatbot</strong></td><td>Answers using only what the model learned in training. No live data, no actions.</td><td>A generic assistant answering "what is a JWT?" from general knowledge.</td></tr>
+        <tr><td><strong>RAG</strong></td><td>Retrieves real, current, private data first, then answers using that data as grounding.</td><td>"How many vacation days?" answered from the actual uploaded HR policy.</td></tr>
+        <tr><td><strong>AI Agent</strong></td><td>Can decide <em>which actions</em> to take (via tool calling) and in what order, not just answer questions.</td><td>"Generate last month's sales report" — the agent decides to query the DB, then summarize.</td></tr>
+        <tr><td><strong>Workflow Automation</strong></td><td>A fixed, predefined sequence of steps that always runs the same way — no reasoning about what to do, just executing a pipeline.</td><td>Every new contract upload automatically gets OCR'd, embedded, and tagged — same steps, every time, no decision-making.</td></tr>
+        <tr><td><strong>Multi-Agent System</strong></td><td>Several specialized agents, each with a narrow job, coordinating (often via the Orchestrator) to solve something one agent alone couldn't.</td><td>A "Contract Agent" extracts clauses, a "Risk Agent" flags risky terms, a "Summary Agent" writes the final comparison — each is narrow, together they're powerful.</td></tr>
+      </table>
+
+      <p>Your project uses <em>all five</em>, layered: workflow automation for ingestion, RAG for grounded Q&A, tool-calling agents for actions, and (as a stretch goal) a small multi-agent setup for genuinely multi-step tasks like the contract comparison. That layering — not any single piece — is what makes it a real "AI operating system" rather than a single feature.</p>
+    </section>
+
+    <!-- 9. TEAM -->
+    <section id="team">
+      <span class="kicker">09 · Division of Labor</span>
+      <h2>Team Responsibilities — Who Builds What</h2>
+
+      <table>
+        <tr><th>Role</th><th>Owns</th></tr>
+        <tr><td><strong>Data Engineer</strong></td><td>The ingestion pipeline: document parsing (PDF/docx/CSV), chunking strategy, embedding generation, loading into Qdrant and PostgreSQL; also owns data quality, deduplication, deterministic synthetic-company generation, tenant IDs, and metadata/permission tagging on every chunk.</td></tr>
+        <tr><td><strong>AI Engineer 1 — Retrieval &amp; RAG</strong></td><td>Embedding model selection, chunking strategy tuning, Qdrant schema and search quality, permission-aware payload filtering, and retrieval evaluation — including a dedicated cross-tenant leakage test set.</td></tr>
+        <tr><td><strong>AI Engineer 2 — Orchestration &amp; Agents</strong></td><td>The Planner, the Orchestrator graph (e.g. built with LangGraph), tool-calling definitions (SQL tool, document tool, email tool), and the multi-agent stretch goal. <strong>Also owns the agentic layer:</strong> the human-approval gate before any irreversible tool call (W11), the Celery-based scheduler and the first scheduled/proactive agent reusing the sales tool (W12), and — if time allows — adaptive re-planning and formal multi-agent handoff as the Phase 5 stretch goal.</td></tr>
+        <tr><td><strong>AI Engineer 3 — Fine-tuning &amp; Verification</strong></td><td>The fine-tuning dataset and training job (tone/classification model), the Hallucination Checker, and the Evaluation Module (metrics, test sets, dashboards proving quality). <strong>Also owns the self-correction loop</strong> (W16) — the retry branch that fires when the Hallucination Checker fails, since it's a direct extension of the checker they already built.</td></tr>
+        <tr><td><strong>Backend Engineer</strong></td><td>FastAPI service, JWT authentication, the RBAC + ABAC policy engine, tenant isolation, PostgreSQL Row-Level Security, permission-aware cache keys, audit logs, API contracts with the AI Orchestrator, streaming responses, and Object Storage authorization. <strong>Also owns the approval-gate API</strong> (the confirm/reject endpoint the Frontend calls) and the Celery worker's connection into the Backend. <strong>Also owns infrastructure</strong> — Docker/Compose for every service, the Celery + Redis-queue container, CI/CD, environment/secrets configuration, and Object Storage setup. Everyone on the team is expected to know enough Docker to run and adjust their own service's container; this role is accountable when the security and infrastructure layers must work together.</td></tr>
+        <tr><td><strong>Frontend Engineer</strong></td><td>The public NileTech website, private employee portal, login flow, chat UI, document upload flow, role-aware navigation, access-denied states, self-service HR screens, sales/report dashboards, streaming message rendering, and citation display. <strong>Also owns the UI for the agentic layer:</strong> the approval-confirmation prompt for irreversible actions, and a visible indicator when the self-correction loop retries or a scheduled agent has run.</td></tr>
+      </table>
+    </section>
+
+    <!-- 10. TIMELINE -->
+    <section id="timeline">
+      <span class="kicker">10 · Schedule</span>
+      <h2>A Realistic 5-Month Timeline — Optimized</h2>
+      <p>The straightforward version of this timeline just appends "agentic upgrades" as a new phase at the end — but that quietly extends the project past 5 months, and puts your most impressive demo material at the point where student teams are most likely to run out of time. The optimized version below folds each upgrade into the phase where it's cheapest to build, so the schedule stays at 20 weeks and nothing impressive depends on borrowed time.</p>
+      <ul>
+        <li><strong>Self-correction loop</strong> moves into Phase 4, next to the Hallucination Checker — it's a retry branch on a component you're already building, not new work.</li>
+        <li><strong>Scheduled/proactive agent</strong> moves into Phase 3, next to the SQL agent — a scheduler that re-runs an existing agent on a timer is far cheaper once the agent already exists.</li>
+        <li><strong>Human-approval gate</strong> moves into Phase 3 as well, right alongside the first tool that can act (email/SQL) — approval should exist from the moment anything irreversible is possible, not bolted on afterward.</li>
+        <li><strong>Adaptive re-planning &amp; multi-agent handoff</strong> stay as explicitly optional, attempted only in Phase 5 if every earlier gate closed early.</li>
+      </ul>
+
+      <div class="phase-header"><span class="dot"></span>Phase 1 — Foundations (Weeks 1–4)</div>
+      <div class="week"><div class="wk-label">W1</div><div class="wk-body"><strong>Scope, tenants &amp; architecture lock-in.</strong> Finalize the NileTech/Delta demo-company model, document types, database, LLM provider, roles, permissions, data classifications, and access-control acceptance tests. Everyone must agree on the architecture diagram before any code is written.</div></div>
+      <div class="week"><div class="wk-label">W2</div><div class="wk-body"><strong>Infra skeleton.</strong> Backend stands up Docker Compose with empty PostgreSQL, Qdrant, Redis, MinIO containers, plus a Celery worker container (used later for scheduling — trivial to add now, annoying to bolt on later), and scaffolds FastAPI with a health-check endpoint and auth stub.</div></div>
+      <div class="week"><div class="wk-label">W3</div><div class="wk-body"><strong>Identity, authorization &amp; schema.</strong> Backend implements JWT authentication, companies, users, departments, roles, permissions, document classifications, audit logs, and the first RBAC/tenant checks. Frontend scaffolds login, role-aware navigation, and a bare chat shell.</div></div>
+      <div class="week"><div class="wk-label">W4</div><div class="wk-body"><strong>Synthetic company + secure ingestion v1.</strong> Data Engineer generates the first NileTech users, departments, HR records, and policies, then ships document upload → parse → classify → permission-tag → chunk → store-in-Qdrant for PDFs. <em>Gate: a NileTech user must not retrieve the seeded Delta Retail test document before Phase 2 starts.</em></div></div>
+
+      <div class="phase-header"><span class="dot"></span>Phase 2 — Core RAG (Weeks 5–9)</div>
+      <div class="week"><div class="wk-label">W5</div><div class="wk-body">AI Engineer 1 wires the Embedding Model into ingestion and query time; first real semantic search working against Qdrant.</div></div>
+      <div class="week"><div class="wk-label">W6</div><div class="wk-body">First end-to-end RAG answer: question → retrieve → LLM → plain answer, no verification yet. This is your first internal demo milestone.</div></div>
+      <div class="week"><div class="wk-label">W7</div><div class="wk-body">Frontend connects real chat UI to the real backend, with streaming responses and citation display.</div></div>
+      <div class="week"><div class="wk-label">W8</div><div class="wk-body">Data Engineer extends ingestion to contracts, meeting notes, support docs, and code with tenant, department, country, owner, role, and classification metadata. Backend enables Row-Level Security on the highest-risk PostgreSQL tables.</div></div>
+      <div class="week"><div class="wk-label">W9</div><div class="wk-body">Permission-aware Redis caching and downloadable-file authorization are added to the RAG path. Run the first full access test set, including own-data, team-data, department denial, and cross-tenant retrieval. <em>Gate: RAG and authorization must both be stable before agents are layered on.</em></div></div>
+
+      <div class="phase-header"><span class="dot"></span>Phase 3 — Agents, Structured Data &amp; Safe Action (Weeks 10–14)</div>
+      <div class="week"><div class="wk-label">W10</div><div class="wk-body">Data Engineer loads coherent synthetic sales, finance, HR, and legal records into PostgreSQL for both tenants. AI Engineer 2 begins the Planner; Backend defines permission requirements for every planned tool.</div></div>
+      <div class="week"><div class="wk-label">W11</div><div class="wk-body">SQL tool-calling agent built and tested against the sales scenario ("generate last month's sales report"). <strong>Backend adds the human-approval gate</strong> now, before any tool that could send/delete/modify anything goes live — approval is cheapest to require from day one of tool-calling, not retrofitted later.</div></div>
+      <div class="week"><div class="wk-label">W12</div><div class="wk-body">GitHub repo ingestion (code-aware chunking) added; code-explanation scenario working. <strong>AI Engineer 2 adds the Celery-based scheduler</strong> and wires it to re-run the sales agent weekly — this is your first proactive/scheduled agent, and it reuses a tool that already works.</div></div>
+      <div class="week"><div class="wk-label">W13</div><div class="wk-body">Orchestrator graph built properly (e.g. LangGraph) to route between RAG, SQL agent, and code agent based on Planner output.</div></div>
+      <div class="week"><div class="wk-label">W14</div><div class="wk-body">Multi-document reasoning (contract comparison scenario) implemented as a small multi-step plan. <em>Gate: all four example scenarios, plus the scheduled sales report and the approval gate, must work before verification work begins.</em></div></div>
+
+      <div class="phase-header"><span class="dot"></span>Phase 4 — Trust, Quality &amp; Self-Correction (Weeks 15–18)</div>
+      <div class="week"><div class="wk-label">W15</div><div class="wk-body">AI Engineer 3 builds the Hallucination Checker and wires it into the Orchestrator's response path.</div></div>
+      <div class="week"><div class="wk-label">W16</div><div class="wk-body"><strong>Self-correction loop added immediately after</strong>: a failed check now triggers a retry (broader retrieval, or a revised LLM pass) instead of dead-ending — this is a branch on the component just built in W15, not a new subsystem. Fine-tuning dataset assembled in parallel by whichever AI engineer has slack this week.</div></div>
+      <div class="week"><div class="wk-label">W17</div><div class="wk-body">Fine-tuning run and evaluation against the base model. Evaluation Module scaffolded: test question sets per scenario, automated scoring.</div></div>
+      <div class="week"><div class="wk-label">W18</div><div class="wk-body">Full regression and security pass — run the Evaluation Module against the entire system, including self-correction, scheduled agents, forbidden SQL attempts, role changes, permission-aware caching, and tenant-isolation attacks. <em>Gate: unauthorized information leakage must be 0% on the fixed test set before any stretch goal is attempted.</em></div></div>
+
+      <div class="phase-header"><span class="dot"></span>Phase 5 — Stretch Goals, Polish &amp; Defense (Weeks 19–20)</div>
+      <div class="week"><div class="wk-label">W19</div><div class="wk-body">Backend hardens deployment (monitoring, backups, environment separation). Frontend polish pass, including a visible indicator when the self-correction loop retries and when the scheduled agent has run. <strong>Only if every earlier gate closed on time:</strong> attempt adaptive re-planning or a second, formalized multi-agent handoff as a genuine stretch goal — explicitly optional, cut without regret if behind schedule.</div></div>
+      <div class="week"><div class="wk-label">W20</div><div class="wk-body">Full dry-run of the defense demo using the four core scenarios, a blocked salary request, a successful manager-scope request, a cross-tenant attack that returns nothing, the scheduled report, and the self-correction moment. Present both AI-quality metrics and security/access-control metrics as evidence.</div></div>
+
+      <p><strong>Why this ordering is optimal:</strong> every "agentic" capability is attached to the exact week its prerequisite is finished, so nothing sits idle waiting to be revisited, and nothing requires reopening a component you'd already considered done. The two highest-impact upgrades (self-correction, scheduling) are guaranteed a place inside the mandatory 18 weeks; only the lower-payoff, higher-effort ones (adaptive re-planning, multi-agent handoff) are pushed into the truly optional final stretch.</p>
+    </section>
+
+    <!-- 11. ANALOGIES -->
+    <section id="analogies">
+      <span class="kicker">11 · Plain Language</span>
+      <h2>The Concepts, As Analogies</h2>
+
+      <div class="analogy"><span class="tag">Embeddings</span>Turning a sentence into a set of GPS coordinates for "meaning." Two sentences that mean similar things end up as nearby coordinates, even if they don't share a single word — "vacation days" and "annual leave" land close together on this meaning-map.</div>
+
+      <div class="analogy"><span class="tag">Vector Database</span>A librarian who doesn't organize books alphabetically, but by <em>what they're about</em>. Ask "how much time off do I get," and she walks straight to the shelf about leave policy — even though your question never used the word "leave."</div>
+
+      <div class="analogy"><span class="tag">RAG</span>An open-book exam. The LLM isn't relying on memory (which can be wrong or outdated); it's handed the exact relevant pages of "the book" right before answering, and told to answer from those pages only.</div>
+
+      <div class="analogy"><span class="tag">Authentication vs Authorization</span>Authentication is the receptionist checking your ID at the building entrance. Authorization is every locked room inside checking whether your badge opens that specific door.</div>
+
+      <div class="analogy"><span class="tag">RBAC + ABAC</span>RBAC is the job title printed on the badge; ABAC is the extra context on the door — your department, branch, project, manager relationship, and whether the file is confidential.</div>
+
+      <div class="analogy"><span class="tag">Multi-Tenancy</span>Two companies can rent offices in the same building and share elevators and electricity, but their keys must never open each other's offices. The infrastructure is shared; the data boundary is not.</div>
+
+      <div class="analogy"><span class="tag">The Planner</span>A dispatcher at a taxi call center. It doesn't drive anywhere itself — it just listens to the request and decides which driver (which tool/agent) is the right one to send.</div>
+
+      <div class="analogy"><span class="tag">Tool Calling</span>Giving the LLM hands, not just a mouth. Without it, the model can only <em>describe</em> what a sales report might look like. With it, the model can actually reach out, pull the real numbers, and hand you the real report.</div>
+
+      <div class="analogy"><span class="tag">Agents</span>A junior employee with a specific job description and a specific set of tools they're allowed to use — the "Sales Agent" can query the sales DB but wouldn't know what to do with a contract, the same way an accountant wouldn't be asked to review your GitHub pull request.</div>
+
+      <div class="analogy"><span class="tag">LangGraph (or any orchestration graph)</span>A flowchart that's actually alive — instead of a static diagram on a whiteboard, it's the literal code path a request follows, with real branches ("if this kind of question, go here; if that kind, go there") and the ability to loop back if a step fails.</div>
+
+      <div class="analogy"><span class="tag">Fine-Tuning</span>Sending a generalist doctor to a two-week specialist course. They already knew general medicine (pre-training); the course reshapes their instincts specifically for one narrow specialty (your company's tone, or one classification task) without making them relearn medicine from scratch.</div>
+
+      <div class="analogy"><span class="tag">Hallucination Checker</span>An editor who reads the journalist's draft and checks every fact against the interview transcript before it's allowed to print — not judging whether it "sounds right," but whether it's actually traceable to a source.</div>
+
+      <div class="analogy"><span class="tag">Scheduler / Background Worker</span>The difference between an assistant who only answers when you knock on their door, and one who already left the report on your desk this morning because they know you need it every Monday.</div>
+
+      <div class="analogy"><span class="tag">Human Approval Gate</span>A seatbelt, not a speed limit. It doesn't slow down anything the system is confident and safe doing on its own — it only clicks in the moment right before something irreversible happens.</div>
+    </section>
+
+    <!-- 12. ARCHITECTURE -->
+    <section id="architecture">
+      <span class="kicker">12 · Full System</span>
+      <h2>The Complete Architecture</h2>
+
+      <div class="blueprint">
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                                FRONTEND                                │
+│ Public Site · Employee Portal · Chat · Uploads · Reports · Approvals   │
+│ Role-aware navigation · Access-denied states · Audit viewer            │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ HTTPS / WebSocket + JWT
+┌──────────────────────────────────▼─────────────────────────────────────┐
+│                            BACKEND (FastAPI)                            │
+│ Authentication · Validation · Rate limits · Streaming · Confirm API    │
+│ Builds trusted access context for every request                        │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                 AUTHORIZATION / POLICY ENFORCEMENT                      │
+│ Tenant boundary · RBAC · ABAC · Resource ACL · Classification          │
+│ company_id · permissions · department · country · owner · manager      │
+│ deny → 403 + audit        allow → scoped execution                     │
+└───────────┬──────────────────┬──────────────────┬──────────────────────┘
+            │                  │                  │
+            ▼                  ▼                  ▼
+ ┌──────────────────┐  ┌────────────────┐  ┌───────────────────────────┐
+ │ PostgreSQL       │  │ Redis          │  │ Object Storage            │
+ │ tenant rows      │  │ tenant/user/   │  │ tenant/classification     │
+ │ users/roles/RLS  │  │ permission     │  │ paths + short-lived URLs  │
+ │ HR/sales/legal   │  │ scoped cache   │  │ original source files     │
+ │ audit logs       │  │ + task queue   │  └───────────────────────────┘
+ └────────┬─────────┘  └───────┬────────┘
+          │                    ▼
+          │           ┌─────────────────┐
+          │           │ Scheduler /     │
+          │           │ Worker (Celery) │
+          │           │ carries service │
+          │           │ identity + scope│
+          │           └────────┬────────┘
+          │                    │
+          └────────────────────┼───────────────────────────────┐
+                               ▼                               │
+                ┌──────────────────────────────────────────────┴───────┐
+                │                  AI ORCHESTRATOR                     │
+                │ Receives question + immutable access context         │
+                │                                                      │
+                │  PLANNER / ROUTER                                    │
+                │       │                                              │
+                │       ├────► KNOWLEDGE AGENT                         │
+                │       │       embed query                            │
+                │       │       Qdrant search with tenant + ACL filters│
+                │       │       unauthorized chunks never returned     │
+                │       │                                              │
+                │       ├────► DATABASE AGENT                          │
+                │       │       approved read-only schema + RLS         │
+                │       │                                              │
+                │       ├────► CODE / LEGAL / REPORT AGENTS            │
+                │       │       each tool declares required permission │
+                │       │                                              │
+                │       └────► WORKFLOW / ACTION TOOLS                  │
+                │               deterministic permission check          │
+                │                         │                             │
+                │                         ▼                             │
+                │                 LLM drafts result                     │
+                │                         │                             │
+                │                 HALLUCINATION CHECKER                 │
+                │                    fail ──► retry/retrieve again      │
+                │                         │ pass                        │
+                │                         ▼                             │
+                │               IRREVERSIBLE ACTION?                   │
+                │                  yes ──► HUMAN APPROVAL               │
+                │                         │                             │
+                │                         ▼                             │
+                │                 EXECUTE + AUDIT                       │
+                └─────────────────────────┬─────────────────────────────┘
+                                          ▼
+                       Final answer + citations + access-safe sources
+                       streamed back to the authorized user
+</pre>
+        <div class="caption">External services (not pictured for clarity): the LLM API provider, and any third-party APIs an agent might call (e.g. email/calendar).</div>
+      </div>
+
+      <h3>Reading it line by line</h3>
+      <ul>
+        <li><strong>Frontend → Backend</strong> is the only path a user ever touches directly. Every other arrow in this diagram is invisible to them — except the Approval Prompt, which is the one moment the Orchestrator reaches back out to ask before acting.</li>
+        <li><strong>Backend</strong> is the identity gatekeeper: it verifies the JWT and builds a trusted access context. The Authorization layer then decides what that identity may access before any database, vector, storage, cache, or agent operation executes.</li>
+        <li><strong>The Authorization / Policy Enforcement layer</strong> combines tenant isolation, RBAC, ABAC, resource ACLs, and data classification. A denial stops the flow immediately and creates an audit event; an allowed decision produces narrow filters used by every downstream component.</li>
+        <li><strong>PostgreSQL, Redis, Object Storage</strong> sit beside the Backend as its three kinds of memory: structured/permanent, fast/temporary, and raw-file, respectively.</li>
+        <li><strong>The Scheduler/Worker</strong> is the only box that can start a request without a human — it uses Redis as its job queue and feeds into the exact same Orchestrator entry point a chat message would, which is why it required almost no new logic to add.</li>
+        <li><strong>The AI Orchestrator</strong> receives a question plus an immutable, server-built permission scope. It can route and reason inside that scope, but it cannot expand the scope, change the tenant, or grant a tool permission to itself.</li>
+        <li><strong>Inside the Orchestrator</strong>, the Planner is the fork in the road, but every path stays permission-aware: Qdrant receives payload filters, PostgreSQL receives tenant/RLS constraints, Object Storage receives authorized keys, and every tool checks a declared permission before it runs.</li>
+        <li><strong>The LLM sits after</strong> all data-gathering steps converge — it never generates an answer from nothing; it always generates from assembled, retrieved, real context.</li>
+        <li><strong>The Hallucination Checker</strong> now has two possible exits instead of one: a fail sends the request back up to the Planner (self-correction) instead of forward to the user, and a pass continues down toward execution.</li>
+        <li><strong>The Human Approval Gate</strong> only activates for the subset of tool calls that write or send something irreversible — most requests (a lookup, a read-only report) skip straight past it.</li>
+        <li><strong>The Evaluation Module</strong> runs off to the side, on its own schedule, continuously grading the system against test questions — this is your ongoing proof of quality, not a one-time demo trick.</li>
+      </ul>
+
+      <p>Hold this one diagram in your head, and every individual technology — Qdrant, LangGraph, fine-tuning, FastAPI — stops being an isolated buzzword and becomes a labeled box with a clear job, a clear reason to exist, and a clear arrow showing who it talks to. That's the entire point of this document.</p>
+    </section>
+
+    <!-- 13. STRETCH -->
+    <section id="more-agentic">
+      <span class="kicker">13 · Optional Stretch</span>
+      <h2>Going Further, If Time Allows</h2>
+      <p>The two highest-payoff agentic upgrades — the <strong>self-correction loop</strong> and the <strong>scheduled/proactive agent</strong> — are no longer "extra." They're built into the core system now: you can see them in the architecture diagram in Section 12, they have named owners in Section 09, and they're scheduled inside the mandatory weeks of Section 10. What's left here are the two upgrades that genuinely are optional — attempt them only in the Phase 5 stretch slot, and only if every earlier gate closed on time.</p>
+
+      <h3>Plans that adapt mid-task</h3>
+      <p>Your Planner currently commits to a plan up front (e.g. "retrieve doc A, retrieve doc B, then compare"). A more adaptive version re-plans after each step, based on what it just found — necessary for genuinely open-ended asks like "investigate why sales dropped last month," where the right next step depends entirely on what the first query reveals, not something you could specify in advance.</p>
+
+      <h3>Multi-agent handoff, formalized</h3>
+      <p>You already use an informal version of this in the contract-comparison scenario. Formalizing it means naming separate agents with narrow, explicit jobs that call each other directly — e.g. a Research Agent gathers information and hands it to a Writer Agent that drafts the final document — rather than one Planner quietly doing both jobs itself.</p>
+
+      <p>Why these two stay optional: both require the Orchestrator to hold and reason about more state across multiple turns, which is a meaningfully larger engineering lift than a retry branch or a cron trigger — exactly the kind of work that's safe to attempt only once the mandatory system is already stable and demoable.</p>
+    </section>
+
+    <footer>Enterprise AI OS — Access-Aware Graduation Project Blueprint · Built for the defense</footer>
+  </main>
+</div>
+
+<script>
+  // Highlight active section in sidebar while scrolling
+  const links = document.querySelectorAll('nav.toc a');
+  const sections = document.querySelectorAll('main section');
+  const map = new Map();
+  links.forEach(a => map.set(a.getAttribute('href').slice(1), a));
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const link = map.get(entry.target.id);
+      if(!link) return;
+      if(entry.isIntersecting){
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
