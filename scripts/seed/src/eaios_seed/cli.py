@@ -218,6 +218,35 @@ def docs(check: bool = typer.Option(False, "--check", help="Fail if the committe
         typer.echo("documentation already up to date")
 
 
+#: Checks this feature specifies but cannot perform yet, and the decision that
+#: emptied each one (spec 001 FR-045a).
+#:
+#: Reported rather than omitted. FR-045a requires a check whose subject is empty to
+#: say so and name the deferral, because "three checks passed" and "everything was
+#: checked" are different statements and an operator cannot tell them apart from the
+#: output alone. The entry disappears from this list when its decision is revisited,
+#: so the notice cannot outlive the gap it describes.
+_DEFERRED_CHECKS: tuple[tuple[str, str], ...] = (
+    (
+        "cross-tenant marker search in the vector store",
+        "decision D2 defers ingestion, so the collections hold nothing to search."
+        " The structural half is still verified: every collection's `company_id`"
+        " payload index is asserted by tests/security/test_cross_tenant_probe.py.",
+    ),
+)
+
+
+def _report_skipped_checks() -> None:
+    """Say what was *not* examined, and why."""
+    if not _DEFERRED_CHECKS:
+        return
+
+    typer.echo(f"SKIP {len(_DEFERRED_CHECKS)} check(s) had nothing to examine:")
+    for name, reason in _DEFERRED_CHECKS:
+        typer.echo(f"     {name}")
+        typer.echo(f"       {reason}")
+
+
 @app.command()
 def verify(
     seed: SeedOpt = ROOT_SEED,
@@ -276,6 +305,7 @@ def verify(
 
     if root == stored.root_fingerprint:
         typer.echo(f"OK   fingerprint matches  {root}")
+        _report_skipped_checks()
         return
 
     typer.echo("FAIL fingerprint mismatch", err=True)
