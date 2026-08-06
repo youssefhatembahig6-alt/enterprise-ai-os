@@ -46,6 +46,38 @@ shipped work. **No requirement below is removed or narrowed.**
 - Q: Should dependency direction between packages be a requirement, or a code-review convention? → A: A stated requirement, enforced by an automated import check, so a backwards dependency fails the build rather than depending on a reviewer noticing.
 - Q: How is the API versioned, given `packages/contracts` generates client types from it? → A: No version segment in the path. The published OpenAPI document and the generated types are the compatibility gate, and that gate already exists.
 
+### Session 2026-08-06 — architecture checklist remediation
+
+Closing the 24 open items in [checklists/architecture.md](checklists/architecture.md). **No requirement
+below is removed or narrowed.** Three items needed nothing — FR-001 already defines responsibilities
+rather than names (CHK001), FR-002 already closes the service set (CHK004), and FR-014c already covers
+a dependency lost mid-run as an outcome rather than a case list (CHK020). The rest were genuine gaps,
+and they share a pattern worth naming: **the system already behaves correctly and no requirement said
+it must**. `_safe_detail` in the health probes suppresses connection strings and cites "CHK017" in its
+own docstring — the code was written to satisfy a checklist item rather than a requirement, which is
+the same failure FR-001a was added to fix, one layer up.
+
+- **Added FR-002a–c** — startup ordered by readiness; frontend behaviour when the API is unreachable;
+  port conflicts. The last backs an edge case that had been listed with no requirement behind it.
+- **Added FR-003a–e and amended FR-003** — liveness versus readiness, bounded per-dependency timeouts,
+  partial availability as degraded-and-refused, anonymous access, and disclosure limits. FR-003 now
+  names the same five services as FR-002 and FR-039–FR-042, so "every backing service" is countable.
+- **Added FR-005a, FR-006a** — which settings belong in example configuration, and a three-part
+  checkable test for "non-production placeholder" replacing a judgement call.
+- **Added FR-007a** — a failed migration leaves a known schema version. Reversibility and the
+  requirement to recover are separate claims; only the first was stated.
+- **Added FR-014d–f** — a stable exit-code scheme separating refusal from failure, a message-content
+  standard, and reset against an already-empty environment.
+- **Added FR-031b** — object-storage writes fail fast rather than retry, recorded as a decision with
+  its revisit condition, not left as an omission.
+- **Defined "standard developer machine"** under Assumptions. SC-001 and SC-008 both budget time
+  against it and neither could be evaluated without it.
+
+**Stated but not yet verified.** These are new requirements, and writing one does not discharge it.
+Four have no executable evidence today: FR-002c's port-conflict message, FR-006a's refuse-to-start
+condition outside a local environment, FR-014d's documented exit-code scheme, and FR-014f's
+empty-environment reset. They are tracked as follow-up work and are **not** claimed as met.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - One-Command Local Environment (Priority: P1)
@@ -156,22 +188,33 @@ The dataset includes the outward-facing content that makes NileTech look like a 
 
 **Repository and environment**
 
-- **FR-001**: The project MUST be organized as a single monorepo with one documented home for each of: application backend, application frontend, data generation and seeding, shared contracts and schemas, infrastructure definitions, tests, and documentation.
+- **FR-001**: The project MUST be organized as a single monorepo with one documented home for each of: application backend, application frontend, data generation and seeding, shared contracts and schemas, **shared user-interface components**, **shared domain logic used by more than one member**, infrastructure definitions, tests, and documentation. Each home MUST have a stated responsibility, not merely a name — a directory whose contents are decided case by case is where the dependency rule in FR-001a starts to erode.
 - **FR-001a**: Dependency direction between workspace members MUST be a stated rule, enforced automatically:
   - `packages/*` MUST NOT import from `apps/*`, `services/*`, or `scripts/*`;
   - `apps/*`, `services/*`, and `scripts/*` MAY import from `packages/*` but MUST NOT import from one another;
   - code needed by two members moves **down** into `packages/`, never sideways.
   An automated check MUST fail the build on a violation. The rule is written down because it has already been needed and resolved by judgement rather than by rule: the seed loader required a Redis key pattern that the API also writes, and nothing stated that `scripts/seed` may not import from `apps/api` — the pattern was moved into `packages/core` because that seemed right, which is precisely the decision a rule exists to make unnecessary. The next feature adds a second application and a second API surface, so the cost of leaving this implicit rises.
 - **FR-001b**: API paths MUST NOT carry a version segment. Compatibility is governed by the **published OpenAPI document and the generated client types**, which must agree with the running service — a gate that already exists and already fails on drift. This system deploys its client and its server together and has one consumer per surface, so a `/v1/` prefix would add a permanent cost to buy an option nothing needs. If a second, independently-deployed consumer ever appears, this decision is the thing to revisit first.
-- **FR-002**: The complete local system MUST start from a clean checkout via one documented command, bringing up the relational store, vector store, cache and job queue, object store, background worker, backend service, and frontend service.
-- **FR-003**: The system MUST expose a health check that individually reports the reachability of each backing service, so a partially started environment is immediately visible.
+- **FR-002**: The complete local system MUST start from a clean checkout via one documented command, bringing up the relational store, vector store, cache and job queue, object store, background worker, backend service, and frontend service. Those seven are the whole of "the complete local system" — the set is closed, so the claim is countable rather than a matter of opinion. The **documented startup budget** referred to in the acceptance scenarios is SC-001's **15 minutes**, measured from a clean checkout on the machine defined under *Assumptions → Standard developer machine*, and including image pulls on a first run.
+- **FR-002a**: Startup MUST be **ordered by readiness, not by wall-clock guesswork**: a service that depends on another MUST NOT be considered started until that dependency reports healthy, and the one documented command MUST NOT report success until every service in FR-002 reports healthy. A fixed sleep, or a service with no health probe treated as ready by default, both produce the failure this exists to prevent — a command that claims success over a system that is not up.
+- **FR-002b**: The frontend MUST remain usable when the backend is unreachable: it MUST render a stated error condition within a bounded time rather than an indefinite loading state, and MUST NOT present a blank page or a raw framework error. The frontend is a required service of this environment, so "the API is down" is a state it is guaranteed to meet.
+- **FR-002c**: A port or resource conflict on the developer's machine MUST produce a **clear, actionable message naming the conflicting resource**, and MUST NOT leave a partially started environment behind. Every host port the environment publishes MUST be overridable through environment configuration, so the conflict is resolvable without editing committed files (FR-005). *(This requirement backs an edge case that previously had none — the scenario was listed under Edge Cases with no requirement to satisfy it.)*
+- **FR-003**: The system MUST expose a health check that individually reports the reachability of **each of the five backing services named in FR-002 and FR-039–FR-042** — the relational store, the vector store, the cache and job queue, the object store, and the background worker — so a partially started environment is immediately visible. The set MUST be the same set, named the same way, in the health requirements and the isolation requirements; two lists that drift apart make "every backing service" unverifiable.
+- **FR-003a**: The health surface MUST distinguish **liveness** from **readiness**. Liveness answers whether the process is running and MUST NOT depend on any external service — a liveness probe that fails when a dependency is down causes the orchestrator to restart a healthy process, which cannot fix the dependency and destroys any in-flight work. Readiness answers whether the system can serve, and does depend on them.
+- **FR-003b**: Each dependency probe MUST carry its **own bounded timeout**, so a hung dependency produces a definite answer within a stated time rather than a hanging request. The bound MUST be configurable and MUST have a documented default. A probe that waits indefinitely turns the health endpoint into a second outage.
+- **FR-003c**: Partial availability MUST be reported as **degraded and refused, not as healthy**: the readiness response MUST carry a per-dependency status distinguishing *reachable*, *unreachable*, and *timed out*, and the endpoint's overall status MUST be a failure when any dependency is not reachable. Reporting "mostly up" as up is how a partially started environment passes for a working one.
+- **FR-003d**: Health endpoints MUST remain reachable **without authentication** when authentication is introduced in a later feature. They are consumed by the container orchestrator, which holds no credentials; requiring one would make the system unmonitorable to protect information FR-003e already forbids it from carrying.
+- **FR-003e**: A health response MUST NOT disclose connection strings, credentials, internal hostnames, ports, query text, or driver stack traces. It may name the dependency, its status, its latency, and a failure **category**. This follows from FR-003d and not the other way round: the response is unauthenticated, so its content is public by construction.
 - **FR-004**: The environment MUST provide documented commands to start, stop, reset (destroy all state), and re-seed, and each MUST be safe to run repeatedly.
 - **FR-005**: All configuration that differs between machines MUST be supplied through environment configuration with documented defaults that work out of the box for local development; no team member may need to hand-edit committed files to start the system.
+- **FR-005a**: The example configuration file MUST surface **exactly** the settings a person may legitimately need to change — host ports, credentials, the seed value, the reference date, and the profile — and MUST NOT surface internal wiring that has one correct value, such as inter-service hostnames on the container network. The test is the reason for the boundary: a setting appears when changing it is a supported action, and stays internal when changing it can only break the system. An example file that lists everything is as unhelpful as one that lists nothing, because neither tells the reader which knobs are theirs.
 - **FR-006**: No secret values may be committed to the repository; local development MUST work from documented example configuration containing only non-production placeholder values.
+- **FR-006a**: "Non-production placeholder" MUST be checkable rather than a matter of judgement. A committed default satisfies FR-006 only if **all** of the following hold: it grants access to nothing outside the local environment; it is identifiable as a placeholder from its own value, without external knowledge; and the system **refuses to start** with it in any environment not marked local. The third condition is what makes the first two safe — without it, a placeholder that reaches a real deployment is a real credential, however it was labelled.
 
 **Schema and migrations**
 
 - **FR-007**: All structured data MUST be created through versioned, ordered, reversible migrations; no schema object may exist only as a manual change.
+- **FR-007a**: A migration that fails MUST leave the schema at a **known version** — either fully applied or fully rolled back, never partway. Reversibility (FR-007) is what makes recovery possible; this requirement is what makes it necessary, and the two are not the same claim. Every migration's down path MUST be exercised, not merely written: a `down` that has never run is an assumption, and it is discovered to be wrong at the moment it is most needed.
 - **FR-008**: Rebuilding the database from migrations alone MUST produce an identical schema on any machine.
 - **FR-009**: Every tenant-owned entity MUST carry a company identifier as a mandatory, non-nullable attribute.
 - **FR-009a**: The specification MUST name an explicit, closed **global-entity allowlist** — the small set of entities that legitimately have no company identifier. For this feature that allowlist is: the **permission catalog**, the **platform-level administrator account**, the **schema-migration history**, and the **dataset manifest**. Every entity not on this allowlist is tenant-owned and MUST satisfy FR-009.
@@ -202,7 +245,10 @@ The dataset includes the outward-facing content that makes NileTech look like a 
 - **FR-014**: The seed process MUST **refuse to run against a non-empty environment**, exiting with a clear message and a non-zero status. It MUST NOT attempt a partial top-up, and it MUST NOT be possible to produce a doubled or partially doubled dataset by accident.
 - **FR-014a**: Destroying an existing dataset MUST require an explicit, separate reset action — never a side effect of running the seed. The reset action MUST state what it is about to destroy before proceeding.
 - **FR-014b**: The seed MUST write a **completion marker** to the dataset manifest only after every entity family has been written successfully. An environment whose manifest lacks the completion marker MUST be treated as incomplete by the seed, the verification command, and continuous integration alike.
-- **FR-014c**: A seed run that fails partway MUST leave the environment detectably incomplete rather than plausibly complete: relational writes roll back where the store supports it, and any object-storage or vector-store content written before the failure is reported by the verification command as inconsistent with the manifest.
+- **FR-014c**: A seed run that fails partway MUST leave the environment detectably incomplete rather than plausibly complete: relational writes roll back where the store supports it, and any object-storage or vector-store content written before the failure is reported by the verification command as inconsistent with the manifest. This covers a dependency that becomes unavailable **mid-run** as well as one that was unavailable at the start; the requirement is stated as an outcome precisely so it does not have to enumerate the ways a run can die.
+- **FR-014d**: Every command MUST distinguish an **expected refusal** from an **unexpected failure** by its exit status, so an operator and continuous integration can tell them apart without parsing prose. The scheme MUST be documented and stable: `0` success; a distinct non-zero code for a deliberate refusal (a non-empty environment, a non-local environment, a missing confirmation); and a distinct non-zero code for a verification that ran and disagreed. Collapsing these onto a single `1` makes "the seed refused because data already exists" indistinguishable from "the seed crashed", and only the second is a defect.
+- **FR-014e**: Every refusal and failure message MUST **name the failing component, state what was expected, and state the next action**. It MUST NOT contain credentials, connection strings, or a raw stack trace as its primary content. A message that says only that something went wrong sends the reader to the source code, which is the cost this requirement exists to avoid.
+- **FR-014f**: The reset action MUST be **safe against an already-empty environment**: it MUST report that there is nothing to destroy and complete successfully rather than failing, so it is usable as an unconditional first step in a script. This is the FR-004 repeatability guarantee applied to the one command whose repetition is frightening.
 - **FR-015**: The seed process MUST report a per-entity-family summary of counts and a dataset fingerprint on completion, so two runs can be compared without manual inspection.
 - **FR-015a**: The dataset fingerprint MUST cover the **content** of every generated record and file — including identifiers, relationships, text, amounts, dates, and classification — and MUST exclude values that legitimately vary between environments, namely wall-clock insertion timestamps, connection or session identifiers, and physical storage locations. The fingerprint MUST be independent of row-retrieval order, so two runs that insert in different orders but produce the same content still match. The exclusion list MUST be documented, because an over-broad exclusion would silently weaken the determinism guarantee in SC-002.
 - **FR-016**: The dataset MUST record its own generation metadata — seed value, reference date, generator version, per-family realized counts, fingerprint, and completion marker — so any environment can state exactly which dataset it holds.
@@ -261,6 +307,7 @@ The dataset includes the outward-facing content that makes NileTech look like a 
 - **FR-030**: The system MUST generate **public company content** for **both companies**: services, product offerings, leadership profiles, news items, open vacancies, and office information. NileTech's public content is the richer set (it is the company whose public site is a mandatory surface); Delta Retail receives a smaller but complete set, because `PUBLIC` classification must exist for both tenants (FR-010c) and public content is itself an isolation surface that must be provable per tenant.
 - **FR-031**: Every generated document MUST exist both as a stored file in the object store and as a metadata record carrying company, department, owner, classification, country, and document type.
 - **FR-031a**: Every stored file MUST have **exactly one owning user, of the same company**. Ownership follows a fixed convention so it is predictable and testable: policy documents are owned by the head of the department that governs them (HR policies by the HR head, security policy by the Operations head); contracts and agreements are owned by a Legal user where the company has a Legal department, and otherwise by the head of Executive Management; departmental reports and expense records are owned by that department's head; public content is owned by the head of Executive Management; and employee-specific documents are owned by the employee they concern. No file may be ownerless, and no file may be owned by a user of the other company.
+- **FR-031b**: Object-storage writes during seeding MUST **fail fast rather than retry**. This is a decision, not an omission: the seed runs against a local store on the same host, so an upload failure means the store is genuinely unavailable, and retrying converts a clear failure into a slow one. Recovery is FR-014a's reset followed by a fresh run — cheap, deterministic, and total — rather than a partial dataset repaired in place. Any failure MUST surface through FR-014c's detectable-incompleteness guarantee. *(Revisit if seeding ever targets a remote store across a network, where a transient failure becomes the common case rather than the signal.)*
 - **FR-032**: Generated document files MUST be byte-identical across runs for a given seed value.
 
 **Coherence and integrity**
@@ -381,6 +428,21 @@ plans, tasks, and code:
 - This feature delivers the repository structure, the runnable local environment, the schema, and the generated dataset. It does **not** deliver working authentication, the authorization policy engine, retrieval, agents, or any user interface — those are separate features built on this foundation. Roles and permissions are generated **as data** here so the later authorization feature has them available. *(See Open Question Q1.)*
 - Document files are generated and stored, and their metadata records are created, but documents are **not** chunked, embedded, or indexed for semantic search in this feature. The vector store is provisioned and structured for tenant-scoped entries; populating it is ingestion work belonging to a later feature. *(See Open Question Q2.)*
 - Continuous integration runs the verification checks defined here; broader deployment pipelines and hosted environments are out of scope.
+
+**Standard developer machine**
+
+SC-001 and SC-008 both state time budgets, and a budget against an undefined machine is not a
+measurement. For this project a standard developer machine is: **4 physical CPU cores, 16 GB RAM,
+20 GB free disk, and an SSD**, running a supported container runtime, on a broadband connection
+capable of pulling the container images within the first-run allowance. Slower hardware does not
+make the system incorrect; it makes SC-001 and SC-008 inapplicable, and that is the distinction
+this definition exists to permit.
+
+The environment MUST fit within that machine while the whole stack runs — all seven services of
+FR-002 together, including the peak of a full seed. Fitting is the requirement; per-service memory
+and disk caps are deliberately **not** specified, because pinning a limit per container would
+bind implementation choices this specification has no reason to make, and would need revising
+every time a service is added. The observable budget is the one stated here.
 
 **Data and content**
 
