@@ -482,9 +482,21 @@ defense but proves nothing the API has not already proven.
 | D4 | No AI Assistant placeholder in the portal | The Constitution's *Mandatory Surfaces* list, which names it | That list is the full system's requirement, not this feature's. The spec places RAG, chat, and the assistant out of scope, and FR-028 forbids an entry point to something the user cannot use — which a dead placeholder would be. |
 | D5 | Compensation is a separate endpoint, not a field | The obvious modelling, where a profile carries salary | FR-025's denial must happen **before** the query. A field omitted from a response has already been read. |
 
+| D6 | Password primitives live in `packages/core`, not `apps/api` | The plan put them in the API. The seed's `credentials` command must hash, and `scripts/seed` may not import from `apps/api` (spec 001 FR-001a) — so they moved down. |
+| D7 | `apps/web/e2e/boundary.spec.ts` changed | It asserted `/portal` carried no input at all, which FR-006 deliberately reverses. Its FR-048 check was replaced with a sweep over the eight content pages — the requirement's actual subject, which had never been checked anywhere. |
+| D8 | T111–T112 are written but cannot run | The CI steps exist in `ci.yml` and are correct; the repository was removed at the user's request partway through, so nothing triggers them. Recorded as an open risk rather than marked done-in-spirit. |
+
 **Not a deviation, recorded to prevent one**: research F1's contact-form CORS gap is a
-feature 002 defect. This feature does not fix it and does not depend on it. It is reported
-so it is decided rather than inherited.
+feature 002 defect. This feature does not fix it and does not depend on it — it is the
+reason the portal routes browser traffic same-origin (D2) rather than inheriting an
+untested pattern. It is reported so it is decided rather than inherited.
+
+**Also found while building, and fixed**: the Docker images install each workspace
+member from its *own* `pyproject.toml`, so `PyJWT` and `argon2-cffi` added only to the
+root manifest passed every local check and killed the API container on startup.
+`tests/unit/test_package_dependencies.py` now compares each member's imports against its
+own manifest, and its falsification removes `pyjwt` from the API's and asserts the check
+fires.
 
 ---
 

@@ -19,9 +19,11 @@ export { Skeleton } from "./primitives/Skeleton";
 export { Tag } from "./primitives/Tag";
 export { Text } from "./primitives/Text";
 
+export { AccessDeniedState } from "./patterns/AccessDeniedState";
 export { EmptyState } from "./patterns/EmptyState";
 export { ErrorState } from "./patterns/ErrorState";
 export { PageHeader } from "./patterns/PageHeader";
 export { SectionGrid } from "./patterns/SectionGrid";
+export { SessionExpiredState } from "./patterns/SessionExpiredState";
 
-export const UI_PACKAGE_VERSION = "0.3.0";
+export const UI_PACKAGE_VERSION = "0.4.0";

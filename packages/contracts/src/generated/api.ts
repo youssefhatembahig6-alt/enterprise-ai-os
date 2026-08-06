@@ -242,16 +242,270 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exchange credentials for a session */
+        post: operations["login_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the current session
+         * @description Mark the session ended. Idempotent — a second sign-out succeeds.
+         *
+         *     The previously issued token stops being accepted immediately, because every
+         *     protected request consults this row. That is what makes signing out real rather
+         *     than cosmetic, and it is what SC-002a measures by replaying the exact credential.
+         */
+        post: operations["logout_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current session state
+         * @description Lets the portal tell "expired" from "never signed in" (FR-027, FR-029).
+         *
+         *     Both bounds are exposed because the interface has to say *which* happened. It must
+         *     not use them to decide access — FR-005 requires the server to enforce expiry, and
+         *     it does, on every request including this one.
+         */
+        get: operations["session_state_auth_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authenticated user's identity */
+        get: operations["current_user_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/access-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the server believes about the caller */
+        get: operations["access_context_me_access_context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/hr-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's own HR profile
+         * @description FR-023. Requires `hr:read_self`.
+         *
+         *     Writes **no** audit entry: reading one's own non-compensation profile is not in the
+         *     sensitive set (FR-017a), and its absence from the trail is by design rather than an
+         *     omission. `tests/security/test_authz_audit.py` asserts the zero alongside a
+         *     sensitive read that writes exactly one, so a silently broken audit writer cannot
+         *     hide behind it.
+         */
+        get: operations["own_hr_profile_me_hr_profile_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/direct-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The people who report to the caller
+         * @description Requires `hr:read_team`.
+         *
+         *     An empty list — not a refusal — for a permitted caller with no reports. The portal
+         *     then renders its empty state rather than its access-denied state, which are
+         *     different sentences: "you have no direct reports" is not "you may not see this".
+         */
+        get: operations["own_direct_reports_me_direct_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/profiles/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One employee's HR profile */
+        get: operations["employee_profile_hr_profiles__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr/profiles/{user_id}/compensation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One employee's compensation
+         * @description FR-025 — the flagship denial. Requires `hr:read_all`.
+         *
+         *     A manager reading their own direct report is refused, and the refusal happens
+         *     before any statement mentioning `salary_amount` is executed. Every outcome is
+         *     audited, including an allow for the caller's own record: compensation is sensitive
+         *     "of any kind, including the requester's own" (FR-017a).
+         */
+        get: operations["employee_compensation_hr_profiles__user_id__compensation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccessContextView
+         * @description The server's own view of the caller, rendered verbatim (FR-011).
+         *
+         *     Exists so what the server believes is *observable* rather than inferred from
+         *     behaviour. When this disagrees with a decision, one of the two is wrong and it is
+         *     visible — instead of being reconstructed from which requests happened to succeed.
+         *
+         *     Carries no credential, no token, and no session identifier.
+         */
+        AccessContextView: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Department Id
+             * Format: uuid
+             */
+            department_id: string;
+            /**
+             * Office Id
+             * Format: uuid
+             */
+            office_id: string;
+            /** Country */
+            country: string;
+            /** Employment Type */
+            employment_type: string;
+            /** Manager Id */
+            manager_id: string | null;
+            /** Direct Report Ids */
+            direct_report_ids: string[];
+            /** Roles */
+            roles: string[];
+            /** Permissions */
+            permissions: string[];
+            /** Permission Fingerprint */
+            permission_fingerprint: string;
+        };
         /** CompanyOut */
         CompanyOut: {
             /** Name */
             name: string;
             /** Domain */
             domain: string;
+        };
+        /**
+         * Compensation
+         * @description Requires `hr:read_all`. A manager reading their own direct report is refused.
+         */
+        Compensation: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Salary Band */
+            salary_band: string;
+            /** Salary Amount */
+            salary_amount: string;
+            /** Currency */
+            currency: string;
         };
         /**
          * ContactAccepted
@@ -285,6 +539,31 @@ export interface components {
             subject: string;
             /** Message */
             message: string;
+        };
+        /**
+         * CurrentUser
+         * @description Who the portal greets, and what it may offer them.
+         */
+        CurrentUser: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Email */
+            email: string;
+            /** Company Name */
+            company_name: string;
+            /** Department */
+            department: string;
+            /** Office */
+            office: string;
+            /** Roles */
+            roles: string[];
+            /** Permissions */
+            permissions: string[];
         };
         /**
          * DatasetManifestResponse
@@ -342,6 +621,20 @@ export interface components {
             /** Detail */
             detail?: string | null;
         };
+        /** DirectReport */
+        DirectReport: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Job Title */
+            job_title: string;
+            /** Department */
+            department: string;
+        };
         /**
          * FieldError
          * @description One field-addressed message, so the form can attach it to its control.
@@ -356,6 +649,45 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HrProfile
+         * @description What FR-023 requires an employee can read about themselves, and what FR-024
+         *     lets a manager read about a direct report.
+         *
+         *     **No compensation field of any kind.** Not omitted, not optional, not null —
+         *     absent. Salary lives behind `/hr/profiles/{user_id}/compensation`, which is what
+         *     lets its denial happen before the query rather than by leaving a field out of a
+         *     response that has already been fetched (FR-025, SC-007).
+         */
+        HrProfile: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Email */
+            email: string;
+            /** Department */
+            department: string;
+            /** Office */
+            office: string;
+            /** Country */
+            country: string;
+            /** Employment Type */
+            employment_type: string;
+            /** Job Title */
+            job_title: string;
+            /**
+             * Hire Date
+             * Format: date
+             */
+            hire_date: string;
+            /** Manager Name */
+            manager_name: string | null;
+            leave_balance: components["schemas"]["LeaveBalanceView"] | null;
         };
         /**
          * LeadershipOut
@@ -376,6 +708,19 @@ export interface components {
             /** Display Order */
             display_order: number;
         };
+        /** LeaveBalanceView */
+        LeaveBalanceView: {
+            /** Leave Type */
+            leave_type: string;
+            /** Year */
+            year: number;
+            /** Entitlement Days */
+            entitlement_days: number;
+            /** Used Days */
+            used_days: number;
+            /** Remaining Days */
+            remaining_days: number;
+        };
         /** LivenessResponse */
         LivenessResponse: {
             /**
@@ -388,6 +733,46 @@ export interface components {
             service: string;
             /** Version */
             version: string;
+        };
+        /**
+         * LoginAccepted
+         * @description A new session.
+         *
+         *     The token is returned in the body for server-side callers. The site's own route
+         *     handler moves it into an httpOnly cookie and does not pass it to browser
+         *     JavaScript, which is what keeps it out of reach of an XSS (research R3).
+         */
+        LoginAccepted: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+        };
+        /**
+         * LoginRequest
+         * @description Credentials, and nothing else.
+         *
+         *     **No company field.** The tenant is resolved server-side by looking the address up
+         *     under each known tenant in turn; a caller-supplied tenant would be exactly the
+         *     trusted request value FR-010 forbids. `extra="forbid"` means supplying one is a
+         *     422 rather than a value quietly ignored.
+         */
+        LoginRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
         };
         /** NewsDetailOut */
         NewsDetailOut: {
@@ -492,6 +877,37 @@ export interface components {
             description: string;
             /** Display Order */
             display_order: number;
+        };
+        /**
+         * SessionState
+         * @description What the portal needs to tell "expired" apart from "never signed in".
+         *
+         *     Both bounds are exposed because the interface has to *say which happened* — FR-005's
+         *     edge case requires the expiry state to be distinct from the unauthenticated one, and
+         *     a generic failure after a thirty-minute pause is the difference between a portal
+         *     that explains itself and one that looks broken.
+         */
+        SessionState: {
+            /**
+             * Session Id
+             * Format: uuid
+             */
+            session_id: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /**
+             * Absolute Expires At
+             * Format: date-time
+             */
+            absolute_expires_at: string;
+            /**
+             * Idle Expires At
+             * Format: date-time
+             */
+            idle_expires_at: string;
         };
         /** VacancyDetailOut */
         VacancyDetailOut: {
@@ -935,6 +1351,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    login_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginAccepted"];
+                };
+            };
+            /** @description Refused. Identical for every cause. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No usable identity. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    session_state_auth_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionState"];
+                };
+            };
+            /** @description No usable identity. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    current_user_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    access_context_me_access_context_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessContextView"];
+                };
+            };
+        };
+    };
+    own_hr_profile_me_hr_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrProfile"];
+                };
+            };
+        };
+    };
+    own_direct_reports_me_direct_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectReport"][];
+                };
+            };
+        };
+    };
+    employee_profile_hr_profiles__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrProfile"];
+                };
+            };
+            /** @description No usable identity. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Verified identity, refused by authorization. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such record for this caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    employee_compensation_hr_profiles__user_id__compensation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Compensation"];
+                };
+            };
+            /** @description No usable identity. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Verified identity, refused by authorization. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No such record for this caller. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

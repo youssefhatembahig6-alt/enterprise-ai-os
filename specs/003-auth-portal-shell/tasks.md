@@ -87,7 +87,7 @@ every story begins with signing in.
 - [X] T025 Implement `scripts/seed/src/eaios_seed/credentials.py` — the cross-tenant duplicate-email assertion, one Argon2id hash per user with its own salt, rewrite-not-skip semantics
 - [X] T026 Add the `credentials` command to `scripts/seed/src/eaios_seed/cli.py`: refuse unless `environment == "local"`, print the password used and the row count, and make `reset` print that credentials must be re-provisioned
 - [X] T027 [P] Add a `credentials` target to `Makefile` and document the `up → seed → credentials` order in `docs/running.md`
-- [ ] T028 Write `tests/e2e/test_credentials_lifecycle.py`: fingerprint byte-identical before and after provisioning (SC-014), then reset → re-provision → sign-in works again
+- [X] T028 Write `tests/e2e/test_credentials_lifecycle.py`: fingerprint byte-identical before and after provisioning (SC-014), then reset → re-provision → sign-in works again
 
 ### 2D — Authentication (tests first)
 
@@ -123,8 +123,8 @@ every story begins with signing in.
 
 ### 2F — Credential and column safety
 
-- [ ] T055 [P] Write and pass `tests/security/test_credential_never_logged.py` — the password and the hash appear in no serialiser, log record, or audit row, with a control asserting the log capture itself works
-- [ ] T056 [P] Write and pass `tests/security/test_password_hash_column_unused.py` — AST scan proving no application code reads or writes `users.password_hash` (plan deviation D1, closed by a check rather than a comment)
+- [X] T055 [P] Write and pass `tests/security/test_credential_never_logged.py` — the password and the hash appear in no serialiser, log record, or audit row, with a control asserting the log capture itself works
+- [X] T056 [P] Write and pass `tests/security/test_password_hash_column_unused.py` — AST scan proving no application code reads or writes `users.password_hash` (plan deviation D1, closed by a check rather than a comment)
 
 **Checkpoint**: The API authenticates, builds a trusted context, and decides — and exposes
 no protected data yet. Every security test written so far has been observed failing and now
@@ -143,9 +143,9 @@ longer reachable.
 
 ### Tests for User Story 1 (MANDATORY - write first, watch fail)
 
-- [ ] T057 [P] [US1] Write **failing** `tests/integration/test_auth_login.py` — a *seeded* user (not a fixture) signs in, reaches `/me`, and signs out
-- [ ] T058 [P] [US1] Write **failing** `tests/integration/test_hr_profile.py` — `/me/hr-profile` matches the seeded record field by field, and carries **no** compensation field of any kind
-- [ ] T059 [US1] Run `tests/integration/test_auth_login.py` and `tests/integration/test_hr_profile.py`; record both failures
+- [X] T057 [P] [US1] Write **failing** `tests/integration/test_auth_login.py` — a *seeded* user (not a fixture) signs in, reaches `/me`, and signs out
+- [X] T058 [P] [US1] Write **failing** `tests/integration/test_hr_profile.py` — `/me/hr-profile` matches the seeded record field by field, and carries **no** compensation field of any kind
+- [X] T059 [US1] Run `tests/integration/test_auth_login.py` and `tests/integration/test_hr_profile.py`; record both failures
 
 ### Implementation for User Story 1
 
@@ -153,23 +153,23 @@ longer reachable.
 - [X] T061 [US1] Implement `apps/api/src/eaios_api/hr/queries.py` — the descriptor/payload split: `load_descriptor()` selecting access attributes only, `load_profile_payload()` selecting the profile fields, and no function selecting both
 - [X] T062 [US1] Implement `apps/api/src/eaios_api/me/router.py` — `GET /me`, `GET /me/access-context`, `GET /me/hr-profile`, each going through `enforce` before any payload read
 - [X] T063 [US1] Register the `me` router in `apps/api/src/eaios_api/main.py` and confirm `/openapi.json` publishes the new models
-- [ ] T064 [US1] Run `make contracts` and commit the regenerated `packages/contracts/src/generated/api.ts`; confirm `make contracts-check` exits 0
-- [ ] T065 [US1] Re-run `tests/integration/test_auth_login.py` and `tests/integration/test_hr_profile.py`; confirm both pass
-- [ ] T066 [P] [US1] Add `SessionExpiredState` to `packages/ui/src/patterns/SessionExpiredState.tsx`, export it from `packages/ui/src/index.ts`, and style it in `packages/ui/src/components.css`
-- [ ] T067 [P] [US1] Implement `apps/web/lib/session.ts` — read the cookie via `next/headers`, forward it on the `Authorization` header for server-component fetches (a server `fetch` does not inherit the browser's cookie jar)
-- [ ] T068 [US1] Implement `apps/web/lib/portal-api.ts` — typed client over `@eaios/contracts`, with `Unauthenticated`, `SessionExpired`, and `Forbidden` as distinct outcomes rather than one error
-- [ ] T069 [US1] Implement `apps/web/app/portal/api/login/route.ts` — forward to `POST /auth/login`, set `eaios_session` (`httpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, 8-hour `Max-Age`) and a readable `eaios_csrf`, return `{ ok: true }` and never the token
-- [ ] T070 [US1] Implement `apps/web/app/portal/api/logout/route.ts` — require `X-CSRF-Token` to match `eaios_csrf`, forward to `POST /auth/logout`, clear both cookies **regardless of the API's answer**
-- [ ] T071 [P] [US1] Implement `apps/web/components/portal/SignInForm.tsx` (client) — labelled controls, `aria-describedby` errors, failure announced in a live region, one generic message for every refusal
-- [ ] T072 [P] [US1] Implement `apps/web/components/portal/SignOutButton.tsx` (client)
-- [ ] T073 [US1] Replace `apps/web/app/portal/page.tsx` with the sign-in surface — **same address** (FR-027, spec 002 FR-049a), redirecting to `/portal/home` when a live session exists
-- [ ] T074 [US1] Implement `apps/web/app/portal/(authed)/layout.tsx` — the authenticated shell, redirecting to `/portal` when unauthenticated and to the expired state when the session ended
-- [ ] T075 [P] [US1] Implement `apps/web/app/portal/(authed)/home/page.tsx` — greeting by name, session state, focus moved to the heading after sign-in
-- [ ] T076 [US1] Implement `apps/web/app/portal/(authed)/profile/page.tsx` — My HR Profile with department, office, manager, employment type, and leave balance, and all six states
-- [ ] T077 [US1] Add `/portal/home` and `/portal/profile` to `NON_CONTENT_ROUTES` in `apps/web/lib/pages.ts` so the existing sweeps visit them and `sitemap.ts` does not
-- [ ] T078 [P] [US1] Write `apps/web/tests/SignInForm.test.tsx` — labels, error association, live-region announcement, one message for every refusal
-- [ ] T079 [US1] Write `apps/web/tests/portal-states.test.tsx` — every portal surface × loading, empty, error, unauthenticated, **expired**, and access-denied, driven by the `lib/pages.ts` inventory
-- [ ] T080 [US1] Write `apps/web/e2e/portal.spec.ts` — sign in, land on the profile, sign out, confirm the protected address is no longer reachable, and confirm the expiry state is reached and named
+- [X] T064 [US1] Run `make contracts` and commit the regenerated `packages/contracts/src/generated/api.ts`; confirm `make contracts-check` exits 0
+- [X] T065 [US1] Re-run `tests/integration/test_auth_login.py` and `tests/integration/test_hr_profile.py`; confirm both pass
+- [X] T066 [P] [US1] Add `SessionExpiredState` to `packages/ui/src/patterns/SessionExpiredState.tsx`, export it from `packages/ui/src/index.ts`, and style it in `packages/ui/src/components.css`
+- [X] T067 [P] [US1] Implement `apps/web/lib/session.ts` — read the cookie via `next/headers`, forward it on the `Authorization` header for server-component fetches (a server `fetch` does not inherit the browser's cookie jar)
+- [X] T068 [US1] Implement `apps/web/lib/portal-api.ts` — typed client over `@eaios/contracts`, with `Unauthenticated`, `SessionExpired`, and `Forbidden` as distinct outcomes rather than one error
+- [X] T069 [US1] Implement `apps/web/app/portal/api/login/route.ts` — forward to `POST /auth/login`, set `eaios_session` (`httpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, 8-hour `Max-Age`) and a readable `eaios_csrf`, return `{ ok: true }` and never the token
+- [X] T070 [US1] Implement `apps/web/app/portal/api/logout/route.ts` — require `X-CSRF-Token` to match `eaios_csrf`, forward to `POST /auth/logout`, clear both cookies **regardless of the API's answer**
+- [X] T071 [P] [US1] Implement `apps/web/components/portal/SignInForm.tsx` (client) — labelled controls, `aria-describedby` errors, failure announced in a live region, one generic message for every refusal
+- [X] T072 [P] [US1] Implement `apps/web/components/portal/SignOutButton.tsx` (client)
+- [X] T073 [US1] Replace `apps/web/app/portal/page.tsx` with the sign-in surface — **same address** (FR-027, spec 002 FR-049a), redirecting to `/portal/home` when a live session exists
+- [X] T074 [US1] Implement `apps/web/app/portal/(authed)/layout.tsx` — the authenticated shell, redirecting to `/portal` when unauthenticated and to the expired state when the session ended
+- [X] T075 [P] [US1] Implement `apps/web/app/portal/(authed)/home/page.tsx` — greeting by name, session state, focus moved to the heading after sign-in
+- [X] T076 [US1] Implement `apps/web/app/portal/(authed)/profile/page.tsx` — My HR Profile with department, office, manager, employment type, and leave balance, and all six states
+- [X] T077 [US1] Add `/portal/home` and `/portal/profile` to `NON_CONTENT_ROUTES` in `apps/web/lib/pages.ts` so the existing sweeps visit them and `sitemap.ts` does not
+- [X] T078 [P] [US1] Write `apps/web/tests/SignInForm.test.tsx` — labels, error association, live-region announcement, one message for every refusal
+- [X] T079 [US1] Write `apps/web/tests/portal-states.test.tsx` — every portal surface × loading, empty, error, unauthenticated, **expired**, and access-denied, driven by the `lib/pages.ts` inventory
+- [X] T080 [US1] Write `apps/web/e2e/portal.spec.ts` — sign in, land on the profile, sign out, confirm the protected address is no longer reachable, and confirm the expiry state is reached and named
 
 **Checkpoint**: User Story 1 is fully functional and independently testable. This is the
 MVP — the whole security claim is demonstrable from here.
@@ -189,7 +189,7 @@ events.
 
 - [X] T081 [P] [US2] Write **failing** `tests/security/test_manager_scope.py` — the seeded engineering manager reads every direct report and is refused for an unrelated employee; the direct-report set **and** the unrelated set are both asserted non-empty first
 - [X] T082 [P] [US2] Write **failing** `tests/security/test_authorize_before_read.py` — using the T044 recorder: a manager denied compensation executes **no** statement referencing `employee_profiles.salary_amount`, and an `hr:read_all` caller's request **does** (FR-036, SC-007)
-- [ ] T083 [US2] Run `tests/security/test_manager_scope.py` and `tests/security/test_authorize_before_read.py`; record both failures
+- [X] T083 [US2] Run `tests/security/test_manager_scope.py` and `tests/security/test_authorize_before_read.py`; record both failures
 
 ### Implementation for User Story 2
 
@@ -197,12 +197,12 @@ events.
 - [X] T085 [US2] Extend `apps/api/src/eaios_api/hr/queries.py` with `load_direct_reports()` and `load_compensation_payload()`, keeping the descriptor/payload split intact
 - [X] T086 [US2] Implement `apps/api/src/eaios_api/hr/router.py` — `GET /hr/profiles/{user_id}` and `GET /hr/profiles/{user_id}/compensation` (`hr:read_all`, the flagship denial)
 - [X] T087 [US2] Add `GET /me/direct-reports` to `apps/api/src/eaios_api/me/router.py` — an empty list for a permitted caller with no reports, never a refusal
-- [ ] T088 [US2] Register the `hr` router in `apps/api/src/eaios_api/main.py`, run `make contracts`, and commit the regenerated client
+- [X] T088 [US2] Register the `hr` router in `apps/api/src/eaios_api/main.py`, run `make contracts`, and commit the regenerated client
 - [X] T089 [US2] Re-run `tests/security/test_manager_scope.py` and `tests/security/test_authorize_before_read.py`; confirm both pass
-- [ ] T090 [P] [US2] Implement `apps/web/app/portal/(authed)/team/page.tsx` — the direct-reports list with its empty state held distinct from access-denied
-- [ ] T091 [US2] Implement `apps/web/app/portal/(authed)/team/[userId]/page.tsx` — one report's profile, rendering the designed access-denied state on 403
-- [ ] T092 [US2] Add the team routes to `apps/web/lib/pages.ts` and extend `apps/web/tests/portal-states.test.tsx` to cover them
-- [ ] T093 [US2] Extend `apps/web/e2e/portal.spec.ts` with the manager journey: read a report, request an unrelated employee, land on the designed denial
+- [X] T090 [P] [US2] Implement `apps/web/app/portal/(authed)/team/page.tsx` — the direct-reports list with its empty state held distinct from access-denied
+- [X] T091 [US2] Implement `apps/web/app/portal/(authed)/team/[userId]/page.tsx` — one report's profile, rendering the designed access-denied state on 403
+- [X] T092 [US2] Add the team routes to `apps/web/lib/pages.ts` and extend `apps/web/tests/portal-states.test.tsx` to cover them
+- [X] T093 [US2] Extend `apps/web/e2e/portal.spec.ts` with the manager journey: read a report, request an unrelated employee, land on the designed denial
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
 
@@ -219,17 +219,17 @@ existing.
 
 ### Tests for User Story 3 (MANDATORY - write first, watch fail)
 
-- [ ] T094 [P] [US3] Write **failing** `tests/security/test_cross_tenant_authenticated.py` — a Delta Retail identity requesting a NileTech record gets **404**, byte-identical to a request for an identifier belonging to nobody; the NileTech caller's own reachable set is asserted non-empty in the same run so "zero" is not vacuous
-- [ ] T095 [US3] Run `tests/security/test_cross_tenant_authenticated.py` and record the failure
+- [X] T094 [P] [US3] Write **failing** `tests/security/test_cross_tenant_authenticated.py` — a Delta Retail identity requesting a NileTech record gets **404**, byte-identical to a request for an identifier belonging to nobody; the NileTech caller's own reachable set is asserted non-empty in the same run so "zero" is not vacuous
+- [X] T095 [US3] Run `tests/security/test_cross_tenant_authenticated.py` and record the failure
 
 ### Implementation for User Story 3
 
-- [ ] T096 [US3] Confirm and, where needed, correct the `tenant_absent` → 404 mapping in `apps/api/src/eaios_api/authz/enforce.py`, and assert no code path can turn a layer-1 refusal into a 403 (FR-021, FR-030)
-- [ ] T097 [US3] Confirm audit entries for cross-tenant attempts carry the **actor's** company in `apps/api/src/eaios_api/authz/audit.py`, and add the assertion to `tests/security/test_authz_audit.py` — writing under the target's tenant would put one company's record inside another's trail (research F3)
-- [ ] T098 [US3] Extend `tests/security/test_request_supplied_claims.py` with the cross-tenant selectors: a valid token for one tenant presented against the other's resource, and a company identifier supplied alongside it
-- [ ] T099 [US3] Extend `tests/security/test_cross_tenant_authenticated.py` to sweep **every** endpoint added by this feature, so a new address cannot be added without an isolation case (FR-034)
-- [ ] T100 [US3] Re-run `tests/security/test_cross_tenant_authenticated.py` and confirm it passes
-- [ ] T101 [US3] Extend `apps/web/e2e/portal.spec.ts` — a Delta Retail user signs in and the portal shows only Delta Retail content, with a NileTech identifier reached directly rendering not-found rather than denied
+- [X] T096 [US3] Confirm and, where needed, correct the `tenant_absent` → 404 mapping in `apps/api/src/eaios_api/authz/enforce.py`, and assert no code path can turn a layer-1 refusal into a 403 (FR-021, FR-030)
+- [X] T097 [US3] Confirm audit entries for cross-tenant attempts carry the **actor's** company in `apps/api/src/eaios_api/authz/audit.py`, and add the assertion to `tests/security/test_authz_audit.py` — writing under the target's tenant would put one company's record inside another's trail (research F3)
+- [X] T098 [US3] Extend `tests/security/test_request_supplied_claims.py` with the cross-tenant selectors: a valid token for one tenant presented against the other's resource, and a company identifier supplied alongside it
+- [X] T099 [US3] Extend `tests/security/test_cross_tenant_authenticated.py` to sweep **every** endpoint added by this feature, so a new address cannot be added without an isolation case (FR-034)
+- [X] T100 [US3] Re-run `tests/security/test_cross_tenant_authenticated.py` and confirm it passes
+- [X] T101 [US3] Extend `apps/web/e2e/portal.spec.ts` — a Delta Retail user signs in and the portal shows only Delta Retail content, with a NileTech identifier reached directly rendering not-found rather than denied
 
 **Checkpoint**: All three data-access stories are independently functional.
 
@@ -244,18 +244,18 @@ navigation against each user's permission codes.
 
 ### Tests for User Story 4 (write first, watch fail)
 
-- [ ] T102 [P] [US4] Write **failing** `apps/web/tests/PortalNav.test.tsx` — the permitted user **sees** the entry and the unpermitted user's markup does not contain the string at all, asserted in the same test; `display: none` is still in the DOM and still read by a screen reader
-- [ ] T103 [US4] Run `apps/web/tests/PortalNav.test.tsx` and record the failure
+- [X] T102 [P] [US4] Write **failing** `apps/web/tests/PortalNav.test.tsx` — the permitted user **sees** the entry and the unpermitted user's markup does not contain the string at all, asserted in the same test; `display: none` is still in the DOM and still read by a screen reader
+- [X] T103 [US4] Run `apps/web/tests/PortalNav.test.tsx` and record the failure
 
 ### Implementation for User Story 4
 
-- [ ] T104 [P] [US4] Add `AccessDeniedState` to `packages/ui/src/patterns/AccessDeniedState.tsx`, export it from `packages/ui/src/index.ts`, and style it in `packages/ui/src/components.css`
-- [ ] T105 [US4] Implement `apps/web/components/portal/PortalNav.tsx` — rendering from `CurrentUser.permissions` (codes, never role names), omitting unpermitted entries entirely
-- [ ] T106 [US4] Implement `apps/web/app/portal/(authed)/denied/page.tsx` and wire every 403 outcome in `apps/web/lib/portal-api.ts` to it — never a blank screen, never a raw 403
-- [ ] T107 [US4] Add `PortalNav` to `apps/web/app/portal/(authed)/layout.tsx` with focus management on route change
-- [ ] T108 [US4] Add to `tests/security/test_manager_scope.py` a case requesting each navigation-hidden address **directly** and asserting the server refuses it regardless of what the interface showed (FR-028, SC-008)
-- [ ] T109 [US4] Re-run `apps/web/tests/PortalNav.test.tsx` and confirm it passes
-- [ ] T110 [US4] Extend `apps/web/e2e/portal.spec.ts` — navigation compared across two seeded users with different role sets, both the present and the absent entries asserted
+- [X] T104 [P] [US4] Add `AccessDeniedState` to `packages/ui/src/patterns/AccessDeniedState.tsx`, export it from `packages/ui/src/index.ts`, and style it in `packages/ui/src/components.css`
+- [X] T105 [US4] Implement `apps/web/components/portal/PortalNav.tsx` — rendering from `CurrentUser.permissions` (codes, never role names), omitting unpermitted entries entirely
+- [X] T106 [US4] Implement `apps/web/app/portal/(authed)/denied/page.tsx` and wire every 403 outcome in `apps/web/lib/portal-api.ts` to it — never a blank screen, never a raw 403
+- [X] T107 [US4] Add `PortalNav` to `apps/web/app/portal/(authed)/layout.tsx` with focus management on route change
+- [X] T108 [US4] Add to `tests/security/test_manager_scope.py` a case requesting each navigation-hidden address **directly** and asserting the server refuses it regardless of what the interface showed (FR-028, SC-008)
+- [X] T109 [US4] Re-run `apps/web/tests/PortalNav.test.tsx` and confirm it passes
+- [X] T110 [US4] Extend `apps/web/e2e/portal.spec.ts` — navigation compared across two seeded users with different role sets, both the present and the absent entries asserted
 
 **Checkpoint**: All four user stories are independently functional.
 
@@ -263,20 +263,27 @@ navigation against each user's permission codes.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
+**T111 and T112 are written but NOT complete.** Both add steps to
+.github/workflows/ci.yml, and the repository was removed partway through this
+feature, so nothing triggers them. They were briefly marked [X] on the grounds that
+the YAML was correct — which is exactly the reasoning Principle VIII exists to reject:
+a check that has never run is not a check. They stay open until CI runs and is green,
+and FR-037, SC-012, and spec 001 FR-047c stay unmet until then.
+
 **Purpose**: The evidence, the pipeline, and the documentation that make the feature *done*
 rather than working.
 
 - [ ] T111 [P] Add a `Provision credentials` step to the `stack` job in `.github/workflows/ci.yml`, after the seed step and before the test steps
 - [ ] T112 [P] Add the authorization and authentication suites as their own named step in `.github/workflows/ci.yml` so a failure names itself, and confirm the step's exit code gates the job (FR-037)
-- [ ] T113 [P] Confirm the existing accessibility, keyboard, responsive, and metadata sweeps in `apps/web/e2e/` reach the new portal routes through `apps/web/lib/pages.ts`; extend them if any filters by path prefix
-- [ ] T114 [P] Confirm the `Committed API types match the running API` step in `.github/workflows/ci.yml` covers the new surface and still runs before the browser suite
-- [ ] T115 [P] Document the `up → seed → credentials` order and credential re-provisioning after reset in `docs/running.md` and `README.md`
-- [ ] T116 [P] Add a sign-in note to `docs/personas.md` generation in `scripts/seed/src/eaios_seed/docgen.py`, and run `make docs` then `make docs-check`
-- [ ] T117 Run `uv run python -m ruff check .` and `uv run python -m mypy packages/core/src apps/api/src services/worker/src scripts/seed/src`; fix everything
-- [ ] T118 Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm --filter @eaios/web build`; fix everything
-- [ ] T119 Run the full suite in CI order — `make test && make test-site && make contracts-check` — and confirm every feature 001 and 002 check passes **unchanged** (FR-031, FR-032, SC-011)
-- [ ] T120 Run the fixed access-control acceptance suite — `uv run python -m pytest tests/security -m security -v` — and confirm unauthorized information leakage measures **0%** (Constitution Principle VIII, FR-037, SC-012); record the number
-- [ ] T121 Execute all thirteen scenarios in [quickstart.md](quickstart.md) and record the observed evidence for each, including each stated false-pass check
+- [X] T113 [P] Confirm the existing accessibility, keyboard, responsive, and metadata sweeps in `apps/web/e2e/` reach the new portal routes through `apps/web/lib/pages.ts`; extend them if any filters by path prefix
+- [X] T114 [P] Confirm the `Committed API types match the running API` step in `.github/workflows/ci.yml` covers the new surface and still runs before the browser suite
+- [X] T115 [P] Document the `up → seed → credentials` order and credential re-provisioning after reset in `docs/running.md` and `README.md`
+- [X] T116 [P] Add a sign-in note to `docs/personas.md` generation in `scripts/seed/src/eaios_seed/docgen.py`, and run `make docs` then `make docs-check`
+- [X] T117 Run `uv run python -m ruff check .` and `uv run python -m mypy packages/core/src apps/api/src services/worker/src scripts/seed/src`; fix everything
+- [X] T118 Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm --filter @eaios/web build`; fix everything
+- [X] T119 Run the full suite in CI order — `make test && make test-site && make contracts-check` — and confirm every feature 001 and 002 check passes **unchanged** (FR-031, FR-032, SC-011)
+- [X] T120 Run the fixed access-control acceptance suite — `uv run python -m pytest tests/security -m security -v` — and confirm unauthorized information leakage measures **0%** (Constitution Principle VIII, FR-037, SC-012); record the number
+- [X] T121 Execute all thirteen scenarios in [quickstart.md](quickstart.md) and record the observed evidence for each, including each stated false-pass check
 
 ---
 

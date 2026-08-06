@@ -56,6 +56,19 @@ test("every page carries social-preview metadata", async ({ page }) => {
   }
 });
 
+/**
+ * Sensitive to a slow API, and the reason is in the page rather than in this test.
+ *
+ * `app/news/[slug]/page.tsx` declares `generateMetadata` with a bare `catch` that
+ * returns `{}` — so when the API does not answer in time the article's title silently
+ * degrades to the layout default instead of failing. That is right for a visitor (a
+ * readable page beats an error page) and it makes this assertion sensitive to load.
+ *
+ * It was flaking once per full run when the portal grew the suite to 354 tests. A
+ * per-file retry was tried first and then removed: the cause was Playwright saturating
+ * a single API container, and the fix belongs in `playwright.config.ts` where the
+ * worker cap now lives. A retry here would have hidden that from the next person.
+ */
 test("detail pages derive metadata from the record they show", async ({ page }) => {
   // FR-041 — a detail page inheriting the section's generic description would
   // satisfy "has a description" and defeat the point.

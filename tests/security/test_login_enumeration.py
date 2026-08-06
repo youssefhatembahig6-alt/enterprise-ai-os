@@ -18,7 +18,7 @@ check that passes by luck.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,19 +32,12 @@ from .auth_helpers import DEMO_PASSWORD, EMPLOYEE, load_person, sign_in
 pytestmark = pytest.mark.security
 
 
-@pytest.fixture(autouse=True)
-def _clear_attempt_counters() -> None:
-    """Reset the **sign-in** counters between tests.
+def _clear_login_buckets() -> None:
+    """Delete every sign-in counter. Scoped to the two login buckets.
 
-    This file deliberately exhausts both bounds, and without a reset the order tests
-    ran in would decide which ones passed — the shape of flakiness that gets a suite
-    marked unreliable and then ignored.
-
-    Scoped to the two login buckets, not the whole `eaios:ratelimit:*` namespace. A
-    first version cleared everything and quietly reset feature 002's contact-form and
-    refusal-audit counters as a side effect, which is cross-test interference in the
-    direction that hides bugs rather than causing them: it was masking a genuine
-    ordering problem in `test_anonymous_refusal.py`.
+    Not the whole `eaios:ratelimit:*` namespace: a first version cleared everything and
+    quietly reset feature 002's contact-form and refusal-audit counters as a side
+    effect, which masked a genuine ordering problem in `test_anonymous_refusal.py`.
     """
     from eaios_core.clients.stores import get_redis
     from eaios_core.keys import (
@@ -53,13 +46,37 @@ def _clear_attempt_counters() -> None:
         RATE_LIMIT_PREFIX,
     )
 
+    redis = get_redis()
+    for bucket in (LOGIN_ACCOUNT_BUCKET, LOGIN_ADDRESS_BUCKET):
+        for key in redis.scan_iter(match=f"{RATE_LIMIT_PREFIX}:{bucket}:*"):
+            redis.delete(key)
+
+
+@pytest.fixture(autouse=True)
+def _clear_attempt_counters() -> Iterator[None]:
+    """Reset the sign-in counters **before and after** every test in this file.
+
+    Before, because this file deliberately exhausts both bounds and the order tests ran
+    in would otherwise decide which ones passed.
+
+    After, and this half was missing: `test_the_address_bound_is_reached_across_many_accounts`
+    drives the per-address counter to its limit on purpose, and the fixture used to
+    clear only on the way in — so the *last* test in the file left the address locked
+    for the rest of the fifteen-minute window. Every later suite sharing this client
+    identity then failed to sign in at all: twelve session-expiry tests failed with a
+    401 that looked like broken authentication and was actually the bound working.
+    Counters this file fills are counters this file empties.
+    """
     try:
-        redis = get_redis()
-        for bucket in (LOGIN_ACCOUNT_BUCKET, LOGIN_ADDRESS_BUCKET):
-            for key in redis.scan_iter(match=f"{RATE_LIMIT_PREFIX}:{bucket}:*"):
-                redis.delete(key)
+        _clear_login_buckets()
     except Exception as exc:  # pragma: no cover - environment guard
         pytest.skip(f"redis unavailable: {exc}")
+
+    yield
+
+    # Suppressed: a teardown failure must not mask whatever the test itself reported.
+    with suppress(Exception):
+        _clear_login_buckets()
 
 
 def _an_inactive_user() -> str:

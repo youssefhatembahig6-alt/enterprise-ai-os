@@ -58,6 +58,52 @@ export type FieldError = Schemas["FieldError"];
 export type Problem = Schemas["Problem"];
 
 /**
+ * The authenticated surface (spec 003).
+ *
+ * `Problem` above is shared with the public site deliberately: 401, 403, and 404 on
+ * this surface use the same envelope, so the portal has one shape to handle rather
+ * than a second error vocabulary that would drift from the first.
+ *
+ * `LoginAccepted` carries the token, and the portal's route handler is the only thing
+ * that ever touches that field — it moves the value into an httpOnly cookie and hands
+ * the browser nothing. The type is exported so that handler can be typed, not so
+ * components can reach for it.
+ */
+export type LoginRequest = Schemas["LoginRequest"];
+export type LoginAccepted = Schemas["LoginAccepted"];
+export type SessionState = Schemas["SessionState"];
+
+export type CurrentUser = Schemas["CurrentUser"];
+export type AccessContextView = Schemas["AccessContextView"];
+
+export type HrProfile = Schemas["HrProfile"];
+export type LeaveBalanceView = Schemas["LeaveBalanceView"];
+export type DirectReport = Schemas["DirectReport"];
+export type Compensation = Schemas["Compensation"];
+
+/**
+ * The permission codes the portal's navigation branches on (FR-028).
+ *
+ * Role-aware navigation is built from these and never from role names — FR-014 makes
+ * that a rule, and an interface branching on a role name would break the moment roles
+ * are recomposed.
+ *
+ * This list is *not* generated: OpenAPI describes `permissions` as `string[]`, so the
+ * schema cannot tell us which codes exist. It is transcribed from the seeded catalog
+ * in `scripts/seed/.../organization.py`, and `apps/web/tests/PortalNav.test.tsx`
+ * checks it against what the API actually returns — because a hand-kept list is
+ * exactly the kind of thing this package exists to be suspicious of.
+ */
+export const PORTAL_PERMISSIONS = [
+  "hr:read_self",
+  "hr:read_team",
+  "hr:read_all",
+  "audit:read",
+] as const;
+
+export type PortalPermission = (typeof PORTAL_PERMISSIONS)[number];
+
+/**
  * Every backing service the readiness probe reports on (spec FR-003).
  *
  * Five, not four: US1 acceptance scenario 3 names the background worker alongside

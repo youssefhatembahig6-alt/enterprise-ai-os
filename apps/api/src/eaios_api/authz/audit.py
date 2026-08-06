@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import datetime as dt
 import uuid
+from contextlib import suppress
 from typing import Final, Literal
 
 from sqlalchemy import Engine
@@ -193,4 +194,11 @@ def record_out_of_band(
                 reason=reason,
             )
     except Exception:  # pragma: no cover - audit must not break the response
-        logger.warning("audit.write_failed", action=action)
+        # The reporting is inside its own guard, and that is not defensive padding.
+        # This handler exists so an audit outage cannot turn a refusal into a 500 — and
+        # `logger.warning` can itself raise: structlog's printing logger writes to a
+        # stream, and a stream can be closed. It was, and the `ValueError` escaped the
+        # very function whose contract is that nothing escapes it, converting a failed
+        # audit write into a failed request. A handler that can throw is not a handler.
+        with suppress(Exception):
+            logger.warning("audit.write_failed", action=action)

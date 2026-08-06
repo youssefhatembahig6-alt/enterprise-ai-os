@@ -101,8 +101,8 @@ def render_personas(dataset: Dataset, config: SeedConfig) -> str:
         f"Generated at generator version `{GENERATOR_VERSION}`, profile `{config.profile}`,",
         f"seed `{config.seed}`, reference date `{config.reference_date.isoformat()}`.",
         "",
-        "| Persona key | Company | Department | Primary role | Country | Name | Reports to | Direct reports |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Persona key | Company | Department | Primary role | Country | Name | Sign-in address | Reports to | Direct reports |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
 
     for user in personas:
@@ -114,6 +114,7 @@ def render_personas(dataset: Dataset, config: SeedConfig) -> str:
             f"| {primary.get(user['id'], '—')} "
             f"| {user['country']} "
             f"| {user['full_name']} "
+            f"| `{user['email']}` "
             f"| {manager['full_name'] if manager else '— (top level)'} "
             f"| {reports.get(user['id'], 0)} |"
         )
@@ -122,9 +123,11 @@ def render_personas(dataset: Dataset, config: SeedConfig) -> str:
         "",
         "## What each persona is for",
         "",
-        "Each maps to one of the blueprint's eight access-control scenarios. Enforcement",
-        "arrives with the authorization feature (decision D1); this dataset guarantees the",
-        "records exist to express them.",
+        "Each maps to one of the blueprint's eight access-control scenarios. This dataset",
+        "guarantees the records exist to express them, and feature 003 enforces them — the",
+        "manager/direct-report and salary-denial scenarios are proved against these exact",
+        "people by `tests/security/test_manager_scope.py` and",
+        "`tests/security/test_authorize_before_read.py`.",
         "",
         "| Persona | Scenario it serves |",
         "|---|---|",
@@ -144,8 +147,28 @@ def render_personas(dataset: Dataset, config: SeedConfig) -> str:
         "SELECT * FROM users WHERE persona_key = 'manager.engineering';",
         "```",
         "",
-        "Passwords are deliberately absent. The `password_hash` column exists but nothing",
-        "writes it until the authentication feature lands.",
+        "## Signing in",
+        "",
+        "Every active user above can sign in at <http://localhost:3000/portal> once",
+        "credentials have been provisioned:",
+        "",
+        "```bash",
+        "make up && make seed && make credentials",
+        "```",
+        "",
+        "`make credentials` is a separate step from seeding, and stays separate on purpose",
+        "(spec 003 FR-002a). The generator leaves `users.password_hash` unset — it is never",
+        "written, by anything — and credentials live in their own `user_credentials` table",
+        "written after generation. That ordering is what keeps the dataset fingerprint",
+        "stable: it is computed from the in-process generated rows, so a credential written",
+        "afterwards cannot move it.",
+        "",
+        "The command prints the password it uses and refuses to run outside",
+        "`ENVIRONMENT=local`. It is a deliberately weak, shared placeholder for a",
+        "demonstration dataset in which no real person is behind any account.",
+        "",
+        "**Re-run it after `make reset`**, which clears credentials along with every other",
+        "runtime table.",
         "",
     ]
     return "\n".join(lines)

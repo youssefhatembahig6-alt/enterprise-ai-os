@@ -32,14 +32,27 @@ the stack. They are only required to run the test suite locally.
 > to CRLF on checkout, the dataset fingerprint diverges and the failure looks like a
 > mysterious whole-dataset mismatch rather than a line-ending problem.
 
-## The two commands
+## Getting it running
 
 ```bash
-make up
+make up && make seed && make credentials
 ```
 
-Builds and starts all nine Compose services, applies migrations, and blocks until every
-dependency reports healthy. From a clean checkout this is the only command needed.
+`make up` builds and starts all nine Compose services, applies migrations, and blocks
+until every dependency reports healthy. `make seed` generates the deterministic dataset.
+
+`make credentials` is the third step and it is not optional if you want the portal: the
+generator deliberately leaves `password_hash` unset (spec 003 FR-002a), so a seeded
+environment has a complete dataset and nobody who can sign in. Separating the two is
+what keeps the dataset fingerprint stable — it is computed from the generated rows, not
+from the database, so a credential written afterwards cannot move it.
+
+The command prints the password it used, and refuses to run unless `ENVIRONMENT=local`.
+
+- Public website — <http://localhost:3000>
+- Employee portal — <http://localhost:3000/portal> (any seeded address; see
+  `docs/personas.md`)
+- API — <http://localhost:8000/docs>
 
 ```bash
 make reset
@@ -47,9 +60,10 @@ make reset
 
 Destroys every row, object, vector, and cache entry in the local environment and regenerates
 the full dataset. Requires typed confirmation and refuses to run outside a local environment.
+**Follow it with `make credentials`** — reset clears those too.
 
-Supporting targets: `make down` · `make clean` · `make seed` · `make verify` · `make test` ·
-`make lint`. Run `make` with no arguments for the full list.
+Supporting targets: `make down` · `make clean` · `make seed` · `make credentials` ·
+`make verify` · `make test` · `make lint`. Run `make` with no arguments for the full list.
 
 ## Layout
 

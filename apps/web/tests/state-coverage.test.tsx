@@ -420,8 +420,41 @@ describe("which regions actually fetch on the client (FR-025)", () => {
     return found.sort();
   };
 
-  it("the contact form is the only region that fetches from the browser", () => {
-    expect(clientFetchers()).toEqual(["ContactForm.tsx"]);
+  /**
+   * Every component allowed to fetch from the browser, and why.
+   *
+   * Kept as an exact set rather than relaxed to "contains", because the value of this
+   * assertion is catching the *unexpected* addition — a page that quietly became a
+   * client component and started fetching is exactly what FR-025's classification
+   * exists to notice.
+   *
+   * Feature 003 adds two, and both are deliberate. They post to the site's own route
+   * handlers rather than to the API, which is the arrangement that keeps the session
+   * token in an httpOnly cookie the browser can never read (spec 003 research R3) —
+   * so a client component is not an accident here, it is the mechanism.
+   */
+  const EXPECTED_CLIENT_FETCHERS = [
+    // Spec 002 FR-025 — the public site's one write path.
+    "ContactForm.tsx",
+    // Spec 003 — posts credentials to `/portal/api/login`. Must be a client component:
+    // it is a form with per-field errors and a submitting state.
+    "SignInForm.tsx",
+    // Spec 003 — posts to `/portal/api/logout` with the double-submit CSRF header,
+    // which it can only read from `document.cookie`.
+    "SignOutButton.tsx",
+  ].sort();
+
+  it("only the declared regions fetch from the browser", () => {
+    expect(clientFetchers()).toEqual(EXPECTED_CLIENT_FETCHERS);
+  });
+
+  it("the public site's only browser fetcher is still the contact form", () => {
+    // The half of the original assertion that is about spec 002, stated separately so
+    // the portal's arrival cannot quietly weaken it.
+    const publicFetchers = clientFetchers().filter(
+      (name) => !["SignInForm.tsx", "SignOutButton.tsx"].includes(name),
+    );
+    expect(publicFetchers).toEqual(["ContactForm.tsx"]);
   });
 
   it("the careers filter is server-rendered", () => {

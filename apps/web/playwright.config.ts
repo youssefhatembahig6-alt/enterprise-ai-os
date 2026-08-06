@@ -22,6 +22,22 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
 
+  /**
+   * Capped, and the cap is the point.
+   *
+   * Every test here drives one API container and one database. Playwright defaults to
+   * roughly one worker per core and multiplies that across three viewport projects, so
+   * on a developer machine the suite was opening enough concurrent requests to push
+   * server-rendered pages past their own 10-second API timeout. The symptom was a
+   * different test failing on a different project on each full run — `metadata`, then
+   * `content-journeys` — which reads as a broken page and is actually queueing.
+   *
+   * Four keeps the suite parallel enough to finish in a couple of minutes and stops it
+   * competing with itself. Raising it does not make the stack faster; it makes the
+   * failures less reproducible, which is the opposite of what this project is for.
+   */
+  workers: process.env.CI ? 2 : 4,
+
   use: {
     baseURL,
     trace: "on-first-retry",

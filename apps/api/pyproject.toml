@@ -8,8 +8,12 @@ dependencies = [
     "fastapi==0.115.6",
     "uvicorn[standard]==0.34.0",
     "alembic==1.14.0",
-    # Backs Pydantic's EmailStr on the public contact form (spec 002 FR-019).
+    # Backs Pydantic's EmailStr on the public contact form (spec 002 FR-019) and the
+    # sign-in body (spec 003).
     "email-validator==2.2.0",
+    # Mints and verifies session credentials (spec 003 FR-003). Only the API does this,
+    # so unlike the password hasher it stays here rather than moving down into core.
+    "PyJWT==2.10.1",
 ]
 
 [build-system]

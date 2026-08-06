@@ -191,6 +191,47 @@ class TestCompensationNeedsMoreThanTeamScope:
         ).status_code == 403
 
 
+class TestHiddenNavigationIsNotTheControl:
+    """FR-028, SC-008. Hiding an entry is presentation; the server must refuse the
+    address regardless of what was rendered.
+
+    `apps/web/tests/PortalNav.test.tsx` proves the entries are absent from the markup.
+    This proves the other half — that absence is not what is protecting them. Both are
+    needed: navigation alone is no control, and a server check nobody can see is a
+    portal that offers dead ends.
+    """
+
+    def test_every_permission_gated_address_is_refused_without_its_code(
+        self, client: TestClient
+    ) -> None:
+        # The portal's gated areas and the code each one needs, as the navigation
+        # component declares them. An employee holds none of these.
+        gated = {
+            "/me/direct-reports": "hr:read_team",
+        }
+        token = token_for(client, EMPLOYEE)
+        held = set(client.get("/me", headers=auth(token)).json()["permissions"])
+
+        for path, code in gated.items():
+            assert code not in held, f"the fixture holds {code}; the case is untestable"
+            response = client.get(path, headers=auth(token))
+            assert response.status_code == 403, (
+                f"{path} was reachable without {code} — hiding the navigation entry is"
+                f" not a control (FR-028): {response.status_code}"
+            )
+
+    def test_the_same_addresses_serve_a_caller_who_does_hold_the_code(
+        self, client: TestClient
+    ) -> None:
+        """Paired deliberately. Without it, an endpoint that refused everybody would
+        satisfy the test above."""
+        token = token_for(client, MANAGER)
+        held = set(client.get("/me", headers=auth(token)).json()["permissions"])
+        assert "hr:read_team" in held
+
+        assert client.get("/me/direct-reports", headers=auth(token)).status_code == 200
+
+
 class TestTheReachableSetFollowsTheData:
     def test_moving_a_report_moves_the_reachable_set(
         self, client: TestClient, manager: Person, outsider: Person

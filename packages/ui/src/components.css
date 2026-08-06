@@ -322,6 +322,112 @@
   text-align: start;
 }
 
+/* Feature 003. Two refusals that must not look the same.
+   A denial is a dead end for this person, so it borrows the error treatment. An
+   expired session is an expected consequence of a rule, not a fault — it gets its own
+   quieter surface, because a red alert for "you were away for half an hour" trains
+   people to ignore red. */
+.eaios-state--denied {
+  border-style: solid;
+  border-color: var(--danger);
+  background: var(--danger-wash);
+  text-align: start;
+}
+
+.eaios-state--expired {
+  border-style: solid;
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--ink);
+  text-align: start;
+}
+
+/* ---------------------------------------------------------------- portal --- */
+/* Responsive without a media query: the bar wraps when it runs out of room, so
+   the 360px viewport gets a stacked layout and the 1280px one a single row,
+   from the same three declarations. */
+
+.eaios-portal__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-4);
+  margin-block-end: var(--space-6);
+  border-block-end: 1px solid var(--border);
+}
+
+.eaios-portal-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eaios-portal__identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.eaios-portal__company {
+  color: var(--ink-subtle);
+}
+
+/* `dl` as a two-column grid, collapsing to one on narrow viewports. A definition
+   list rather than a table because these are label/value pairs, not tabular data,
+   and a screen reader announces them as such. */
+.eaios-detail-list {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-4);
+}
+
+.eaios-detail-list dt {
+  color: var(--ink-muted);
+  font-weight: var(--weight-medium);
+}
+
+.eaios-detail-list dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+@media (max-width: 40rem) {
+  .eaios-detail-list {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .eaios-detail-list dd {
+    margin-block-end: var(--space-3);
+  }
+}
+
+.eaios-team-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eaios-team-list li {
+  padding-block: var(--space-3);
+  border-block-end: 1px solid var(--border);
+}
+
+.eaios-team-list__meta {
+  display: block;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
 .eaios-skeleton {
   border-radius: var(--radius-sm);
   background: linear-gradient(

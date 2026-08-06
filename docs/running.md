@@ -64,6 +64,37 @@ $SEED verify
 $SEED fingerprint
 ```
 
+## `make credentials`
+
+Establishes sign-in credentials for every active seeded user. **Run it after `make
+seed`, and again after `make reset`.**
+
+```bash
+docker compose -f infrastructure/docker-compose.yml --env-file .env \
+  run --rm --no-deps -T seed credentials
+```
+
+The full order from a clean checkout is therefore three commands, not two:
+
+```bash
+make up && make seed && make credentials
+```
+
+The generator deliberately leaves `password_hash` unset (spec 003 FR-002a), so a freshly
+seeded environment has a complete dataset and **nobody who can sign in**. That
+separation is what keeps the dataset fingerprint stable: it is computed from the
+in-process generated rows, not from the database, so a credential written afterwards
+cannot move it. Hashing inside the seed would have needed a fixed salt — weakening the
+hash by construction — and would have invalidated both committed fingerprints.
+
+The command prints the password it used. It refuses to run unless `ENVIRONMENT=local`;
+these are deliberately weak, shared, local-only placeholders for a demonstration
+dataset, and there is no environment other than `local` where writing them would be
+anything but a mistake.
+
+Sign in at <http://localhost:3000/portal> with any seeded address — `make docs`
+regenerates `docs/personas.md`, which lists them.
+
 ## `make reset`
 
 Destructive. It removes every row, object, vector, and cache entry.
@@ -72,6 +103,16 @@ Destructive. It removes every row, object, vector, and cache entry.
 docker compose -f infrastructure/docker-compose.yml --env-file .env \
   run --rm --no-deps -T seed reset --yes
 ```
+
+**Reset also clears credentials**, because they are runtime state like every other
+non-generated row. Re-provision afterwards or nobody can sign in:
+
+```bash
+make reset && make credentials
+```
+
+The reset output says so too — a reset that silently leaves the portal unusable is the
+kind of correct-but-invisible consequence this project keeps finding.
 
 ## `make test`
 
@@ -134,6 +175,24 @@ docker compose -f infrastructure/docker-compose.yml --env-file .env logs -f api
 docker compose -f infrastructure/docker-compose.yml --env-file .env \
   exec postgres psql -U eaios_owner -d eaios
 ```
+
+## The employee portal
+
+<http://localhost:3000/portal>. Sign in with any address from
+[personas.md](personas.md) and the password `make credentials` printed.
+
+What each persona reaches differs by their permission codes, which is the point:
+
+| Persona | Sees |
+|---|---|
+| `employee.engineering` | their own HR profile; **no** "My team" entry at all |
+| `manager.engineering` | their own profile, plus their direct reports and each report's profile |
+| `hr.generalist` | anyone in NileTech, including compensation |
+| `employee.delta` | only Delta Retail records — a NileTech identifier is *not found*, never *forbidden* |
+
+Navigation is built from permission codes, never role names, and hiding an entry is
+presentation only: the server refuses the address regardless of what was rendered. Try
+`/portal/team` as `employee.engineering` to see both halves of that.
 
 ## The public website
 

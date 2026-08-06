@@ -11,24 +11,26 @@ reassignment fails there rather than surfacing as a fingerprint mismatch.
 Generated at generator version `0.1.6`, profile `full`,
 seed `20260630`, reference date `2026-06-30`.
 
-| Persona key | Company | Department | Primary role | Country | Name | Reports to | Direct reports |
-|---|---|---|---|---|---|---|---|
-| `admin.company` | niletech | Executive Management | Company Admin | AE | Sultan AlHammadi | — (top level) | 18 |
-| `auditor.readonly` | niletech | Operations | Auditor | EG | Hassan Zaki | Sultan AlHammadi | 3 |
-| `comms.sender` | niletech | Customer Support | Employee | EG | Karim Nasr | Sultan AlHammadi | 4 |
-| `employee.engineering` | niletech | Engineering | Employee | AE | Majid AlZaabi | Tarek Darwish | 0 |
-| `employee.sales` | niletech | Sales | Employee | EG | Sherif Fahmy | Sultan AlHammadi | 5 |
-| `finance.analyst` | niletech | Finance | Finance | EG | Salma ElGendy | Sultan AlHammadi | 2 |
-| `hr.generalist` | niletech | HR | HR | EG | Sherif Hafez | Sultan AlHammadi | 2 |
-| `legal.counsel` | niletech | Legal | Legal | AE | Sultan AlSuwaidi | Sultan AlHammadi | 9 |
-| `manager.engineering` | niletech | Engineering | Manager | EG | Tarek Darwish | Sultan AlHammadi | 9 |
-| `employee.delta` | delta-retail | Sales | Employee | EG | Dina Shafik | Yasmin Bakr | 2 |
+| Persona key | Company | Department | Primary role | Country | Name | Sign-in address | Reports to | Direct reports |
+|---|---|---|---|---|---|---|---|---|
+| `admin.company` | niletech | Executive Management | Company Admin | AE | Sultan AlHammadi | `sultan.alhammadi@niletech.example` | — (top level) | 18 |
+| `auditor.readonly` | niletech | Operations | Auditor | EG | Hassan Zaki | `hassan.zaki@niletech.example` | Sultan AlHammadi | 3 |
+| `comms.sender` | niletech | Customer Support | Employee | EG | Karim Nasr | `karim.nasr@niletech.example` | Sultan AlHammadi | 4 |
+| `employee.engineering` | niletech | Engineering | Employee | AE | Majid AlZaabi | `majid.alzaabi@niletech.example` | Tarek Darwish | 0 |
+| `employee.sales` | niletech | Sales | Employee | EG | Sherif Fahmy | `sherif.fahmy3@niletech.example` | Sultan AlHammadi | 5 |
+| `finance.analyst` | niletech | Finance | Finance | EG | Salma ElGendy | `salma.elgendy@niletech.example` | Sultan AlHammadi | 2 |
+| `hr.generalist` | niletech | HR | HR | EG | Sherif Hafez | `sherif.hafez2@niletech.example` | Sultan AlHammadi | 2 |
+| `legal.counsel` | niletech | Legal | Legal | AE | Sultan AlSuwaidi | `sultan.alsuwaidi@niletech.example` | Sultan AlHammadi | 9 |
+| `manager.engineering` | niletech | Engineering | Manager | EG | Tarek Darwish | `tarek.darwish@niletech.example` | Sultan AlHammadi | 9 |
+| `employee.delta` | delta-retail | Sales | Employee | EG | Dina Shafik | `dina.shafik@deltaretail.example` | Yasmin Bakr | 2 |
 
 ## What each persona is for
 
-Each maps to one of the blueprint's eight access-control scenarios. Enforcement
-arrives with the authorization feature (decision D1); this dataset guarantees the
-records exist to express them.
+Each maps to one of the blueprint's eight access-control scenarios. This dataset
+guarantees the records exist to express them, and feature 003 enforces them — the
+manager/direct-report and salary-denial scenarios are proved against these exact
+people by `tests/security/test_manager_scope.py` and
+`tests/security/test_authorize_before_read.py`.
 
 | Persona | Scenario it serves |
 |---|---|
@@ -52,5 +54,25 @@ if the seed did:
 SELECT * FROM users WHERE persona_key = 'manager.engineering';
 ```
 
-Passwords are deliberately absent. The `password_hash` column exists but nothing
-writes it until the authentication feature lands.
+## Signing in
+
+Every active user above can sign in at <http://localhost:3000/portal> once
+credentials have been provisioned:
+
+```bash
+make up && make seed && make credentials
+```
+
+`make credentials` is a separate step from seeding, and stays separate on purpose
+(spec 003 FR-002a). The generator leaves `users.password_hash` unset — it is never
+written, by anything — and credentials live in their own `user_credentials` table
+written after generation. That ordering is what keeps the dataset fingerprint
+stable: it is computed from the in-process generated rows, so a credential written
+afterwards cannot move it.
+
+The command prints the password it uses and refuses to run outside
+`ENVIRONMENT=local`. It is a deliberately weak, shared placeholder for a
+demonstration dataset in which no real person is behind any account.
+
+**Re-run it after `make reset`**, which clears credentials along with every other
+runtime table.

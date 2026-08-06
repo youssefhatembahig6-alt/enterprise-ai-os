@@ -20,6 +20,10 @@ dependencies = [
     # over the broker. The API depends on core and therefore gains it; the worker
     # already declared it independently.
     "celery[redis]==5.4.0",
+    # Backs `eaios_core.passwords` (spec 003 FR-002). Declared here rather than in the
+    # API because two members need it — the API verifies and the seed's `credentials`
+    # command hashes — and `scripts/seed` may not import from `apps/api`.
+    "argon2-cffi==25.1.0",
 ]
 
 [build-system]

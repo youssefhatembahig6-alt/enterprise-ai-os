@@ -33,4 +33,28 @@ export const PUBLIC_PAGES = [
  */
 export const NON_CONTENT_ROUTES = ["/portal", "/status"] as const;
 
+/**
+ * The authenticated portal surfaces (spec 003 FR-027 – FR-029).
+ *
+ * Separate from `NON_CONTENT_ROUTES` because the sweeps treat them differently: those
+ * are visited anonymously and checked for *behaviour*, while these need a session
+ * before there is anything to look at. A sweep that visited these without signing in
+ * would test the redirect to the sign-in form over and over and report it as coverage
+ * of the portal.
+ *
+ * Excluded from the sitemap and marked `noindex`, exactly as the non-content routes
+ * are — none of this is public content.
+ *
+ * `/portal` itself is deliberately **not** repeated here. It is the sign-in address,
+ * reachable anonymously, and it stays in `NON_CONTENT_ROUTES` where the anonymous
+ * checks already cover it (spec 002 FR-049a: the address does not change).
+ */
+export const PORTAL_PAGES = [
+  "/portal/home",
+  "/portal/profile",
+  "/portal/team",
+  "/portal/denied",
+] as const;
+
 export type PublicPage = (typeof PUBLIC_PAGES)[number];
+export type PortalPage = (typeof PORTAL_PAGES)[number];
