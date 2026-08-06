@@ -15,8 +15,6 @@ import type {
   ReadinessResponse,
 } from "@eaios/contracts";
 
-import { apiBaseBrowser } from "./config";
-
 export type {
   DatasetManifest,
   DependencyName,
@@ -25,10 +23,20 @@ export type {
   ReadinessResponse,
 };
 
-// The status page is a client component, so this resolves to the host-facing
-// address. `NEXT_PUBLIC_` values are inlined at build time, which is why a
-// module-level constant is correct here rather than a per-call read.
-const API_BASE = apiBaseBrowser();
+/**
+ * The site's own origin, not the API's.
+ *
+ * This was `apiBaseBrowser()` — the API's host-facing address — and the status page is
+ * a client component, so every one of these fetches was cross-origin from the browser.
+ * They are simple GETs, so no preflight is sent and the request reaches the API; the
+ * *response* is then unreadable to JavaScript, because the API sends no
+ * `Access-Control-Allow-Origin`. Confirmed against the running stack.
+ *
+ * `apps/web/tests/StatusPage.test.tsx` stubs `fetch`, so it proved the page renders
+ * what it is given and never that it could obtain anything. Same defect as the contact
+ * form, same fix: go through the site's own origin.
+ */
+const API_BASE = "/api/upstream";
 
 export async function fetchLiveness(): Promise<LivenessResponse> {
   const response = await fetch(`${API_BASE}/health/live`);

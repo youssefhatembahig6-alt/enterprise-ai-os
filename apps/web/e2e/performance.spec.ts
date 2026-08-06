@@ -105,7 +105,11 @@ test.describe("no page holds an indefinite loading state", () => {
     // The contact form is one of the two client-fetched regions (FR-025). Its
     // request is held open indefinitely, which is the exact condition SC-014
     // forbids the interface from sitting in.
-    await page.route("**/public/contact", () => {
+    // `/api/contact`, not `/public/contact`: the form posts to the site's own origin
+    // and Next forwards it, because the direct cross-origin call never worked. The
+    // pattern silently matched nothing after that change — the submission succeeded and
+    // this test passed while asserting an error state it had not produced.
+    await page.route("**/api/contact", () => {
       // Never fulfilled and never aborted: the request simply hangs.
     });
 
@@ -131,7 +135,7 @@ test.describe("no page holds an indefinite loading state", () => {
     // taking effect, the submission would succeed and the assertion would be
     // passing on an ordinary error-free page. This proves the stall is real: with
     // the same interception, nothing has resolved after two seconds.
-    await page.route("**/public/contact", () => {});
+    await page.route("**/api/contact", () => {});
 
     await page.goto("/contact");
     await fillContactForm(page);

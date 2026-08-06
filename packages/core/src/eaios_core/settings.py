@@ -144,6 +144,15 @@ class Settings(BaseSettings):
     #: definite answer rather than a hanging request (spec FR-003).
     health_timeout_seconds: float = Field(default=2.0, gt=0, le=30)
 
+    #: Comma-separated hosts whose `X-Forwarded-For` is believed — read through
+    #: :attr:`trusted_proxy_hosts` (spec 002 FR-024d, revisited by 003).
+    #:
+    #: A plain string rather than a collection because pydantic-settings parses complex
+    #: types as JSON, so a set would need `TRUSTED_PROXIES='["web"]'` in `.env` — a
+    #: quoting rule nobody remembers, which fails at container start with an
+    #: unhelpful parse error. It did.
+    trusted_proxies: str = ""
+
     postgres: PostgresSettings = Field(default_factory=PostgresSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     qdrant: QdrantSettings = Field(default_factory=QdrantSettings)
@@ -154,6 +163,22 @@ class Settings(BaseSettings):
     def is_local(self) -> bool:
         """Guards the destructive reset path (spec FR-014a)."""
         return self.environment == "local"
+
+    @property
+    def trusted_proxy_hosts(self) -> frozenset[str]:
+        """Hosts whose `X-Forwarded-For` the rate limiter believes.
+
+        Browser traffic reaches the API through the site's own origin now, because
+        direct cross-origin calls never worked — so without this every submission
+        arrives from the web container and the per-address bound becomes a whole-site
+        one: five enquiries an hour from anybody exhausting the allowance for everybody.
+
+        Deliberately a **closed list, empty by default**. A header any caller can vary
+        is a way to mint unlimited rate-limit buckets, which is worse than having no
+        bound because it looks like one. A deployment behind a load balancer names that
+        balancer here and nothing else.
+        """
+        return frozenset(part.strip() for part in self.trusted_proxies.split(",") if part.strip())
 
 
 @lru_cache(maxsize=1)

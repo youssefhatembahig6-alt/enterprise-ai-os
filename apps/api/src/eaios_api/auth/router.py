@@ -29,10 +29,15 @@ from eaios_core.passwords import verify_dummy, verify_password
 from eaios_core.settings import get_settings
 
 from ..authz.audit import record, record_out_of_band
-from ..errors import NotAuthenticatedError
+from ..errors import NotAuthenticatedError, SecurityControlUnavailableError
 from ..tenants import TENANT_IDS
 from .dependencies import Identity, authenticated, get_engine
-from .login_bounds import clear_account, current_state, record_failure
+from .login_bounds import (
+    LimiterUnavailableError,
+    clear_account,
+    current_state,
+    record_failure,
+)
 from .schemas import LoginAccepted, LoginRequest, SessionState
 from .sessions import create_session, end_session
 from .tokens import mint_access_token
@@ -96,7 +101,14 @@ def login(request: Request, body: LoginRequest) -> LoginAccepted:
     # Read, never increment. A caller who is already blocked must not push their own
     # counter further out on every retry, which would turn a fifteen-minute lockout
     # into a permanent one for anyone with a tab open.
-    state = current_state(email, request, settings)
+    #
+    # Raised before any account is looked up, so an unreachable limiter refuses every
+    # caller identically and says nothing about which accounts exist (FR-007a, FR-022).
+    try:
+        state = current_state(email, request, settings)
+    except LimiterUnavailableError as exc:
+        raise SecurityControlUnavailableError("attempt bound cannot be enforced") from exc
+
     if state.blocked:
         # Same work as every other path, so the refusal is not faster.
         verify_dummy(body.password)
@@ -151,8 +163,15 @@ def _record_failure(request: Request, email: str, resolved: _Resolved | None) ->
     first known tenant otherwise. That fallback is a compromise worth naming: an attempt
     against an address belonging to nobody has no natural tenant, and the alternative —
     not recording it at all — would leave the most interesting failures invisible.
+
+    Raises :class:`SecurityControlUnavailableError` if the counter cannot be written.
+    A failure that goes uncounted is a free guess, and enough of them are what the
+    bound exists to stop.
     """
-    state, just_reached = record_failure(email, request)
+    try:
+        state, just_reached = record_failure(email, request)
+    except LimiterUnavailableError as exc:
+        raise SecurityControlUnavailableError("attempt bound cannot be enforced") from exc
     company_id = resolved.company_id if resolved else next(iter(TENANT_IDS.values()))
 
     record_out_of_band(

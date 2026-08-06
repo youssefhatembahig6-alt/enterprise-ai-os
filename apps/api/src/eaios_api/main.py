@@ -17,9 +17,11 @@ from .errors import (
     AccessDeniedError,
     NotAuthenticatedError,
     ResourceAbsentError,
+    SecurityControlUnavailableError,
     access_denied_handler,
     not_authenticated_handler,
     resource_absent_handler,
+    security_control_unavailable_handler,
 )
 from .health.manifest_router import router as manifest_router
 from .health.router import router as health_router
@@ -108,6 +110,12 @@ def create_app() -> FastAPI:
     application.add_exception_handler(NotAuthenticatedError, not_authenticated_handler)
     application.add_exception_handler(AccessDeniedError, access_denied_handler)
     application.add_exception_handler(ResourceAbsentError, resource_absent_handler)
+    # 503, not 500 and not 401. FR-007a's bound on sign-in attempts is a MUST with no
+    # exception for a dependency being down, so an unreachable limiter refuses rather
+    # than proceeding without the control it cannot evaluate.
+    application.add_exception_handler(
+        SecurityControlUnavailableError, security_control_unavailable_handler
+    )
     return application
 
 

@@ -30,6 +30,11 @@ x-python-env: &python-env
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-eaios_local_only_secret}
   MINIO_BUCKET: ${MINIO_BUCKET:-eaios}
   MINIO_SECURE: "false"
+  # The web container is the only host whose `X-Forwarded-For` the API believes.
+  # Browser traffic goes to the site's own origin and Next forwards it, so without this
+  # the per-address rate limits would count the proxy instead of the visitor — turning
+  # a per-visitor bound into a whole-site one. Any other host's header is ignored.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-web}
   # Feature 003. Shared by api, worker, and seed through this anchor: the API mints
   # and verifies, and the seed container runs `credentials`, so both need the same
   # values. A signing key that differed between them would produce tokens the API

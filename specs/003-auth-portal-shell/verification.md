@@ -12,19 +12,26 @@ evidence.
 
 ## Suite totals
 
+Re-run in full after the post-review defect fixes (2026-08-06, second pass):
+
 | Suite | Result |
 |-------|--------|
-| `tests/unit` | **370 passed** |
-| `tests/security` | **564 passed** |
-| `tests/integration` | **459 passed** (7m51s, includes three destructive resets) |
-| `tests/e2e` (credentials lifecycle) | **6 passed** |
+| `tests/` entire Python suite, one process | **1432 passed, 0 skipped** (19m12s, includes the destructive resets) |
 | `apps/web` components (Vitest) | **183 passed** |
-| Playwright, 3 viewports | **352 passed, 2 skipped**, twice consecutively |
+| Playwright, 3 viewports | **356 passed, 4 skipped** |
 | `ruff` | clean |
 | `mypy` (104 source files) | clean |
 | `eslint` / `tsc` | clean |
 | `make contracts-check` | types match the live schema |
 | `make docs-check` | documentation matches the dataset |
+
+The Python figure is one run of everything except `tests/e2e/test_clean_startup.py`, which
+tears the stack down and is now its own CI job for that reason. **Zero skipped** is the
+number to read: a skip in these suites means an absent dependency, and a suite that skips
+itself reports the same green as one that passed.
+
+None of this is the CI evidence FR-037 and SC-012 require. It is the same machine, one
+platform, run by hand. See *Open risks*.
 
 ---
 
@@ -175,20 +182,79 @@ from the live schema (28 KB → 50 KB) and committed.
 
 ---
 
+## Corrections made after review
+
+**T111 and T112 were wrongly marked complete.** They add CI steps; the YAML is correct
+and nothing can trigger it. Marking them done on the grounds that the file was right is
+precisely the reasoning Principle VIII rejects — a check that has never run is not a
+check. Both are open again, and **FR-037, SC-012, and spec 001 FR-047c remain unmet**
+until a CI run is green.
+
+**FR-007a's bound now fails closed.** The limiter previously failed open when Redis was
+unreachable, recorded as a "residual risk". FR-007a says attempts **MUST** be bounded
+and admits no exception for a dependency being down, so that was the requirement unmet
+rather than a risk accepted. Sign-in now refuses with a generic **503** — raised before
+any account lookup, so it is identical for every caller and leaks nothing.
+`TestTheBoundFailsClosed` covers it, including the control that sign-in works again once
+the limiter returns.
+
+**Feature 002's CORS defect is fixed, and it had a third instance.** Confirmed
+empirically against the running stack: `OPTIONS /public/contact` answers **405**, so the
+contact form could never have submitted from a browser; and `GET /health/live` answers
+200 with **no `Access-Control-Allow-Origin`**, so the status page could never read its
+response either. Both now go through same-origin route handlers, matching the portal.
+`apiBase` and `apiBaseBrowser` are deleted — nothing in the browser needs the API's
+address, and a function that hands one out is how this gets reintroduced.
+`e2e/contact-submission.spec.ts` submits for real, with no `page.route`, and asserts the
+request reaches the API.
+
+**The fix broke two tests that had been passing vacuously, and one draft of its own.**
+`performance.spec.ts` stubbed `**/public/contact`; after the form moved to `/api/contact`
+the pattern matched nothing, so the "stalled submission" tests submitted for real,
+succeeded, and asserted an error state they had not produced. Both patterns now match the
+path the form uses. And the draft that claimed "the submission reached the database" did
+so by re-posting and expecting 202 — but the endpoint answers 202 for a stored row and a
+suppressed duplicate alike, so it would have passed against a form that stored nothing.
+The row is now counted in Postgres by `tests/e2e/test_contact_network_path.py`, which
+posts to the *site's* origin: the request a browser actually makes, which neither the
+server-side suite (it posts to the API directly) nor the browser suite (it stubbed the
+network) had ever exercised. That is why the defect survived feature 002's verification.
+
+**CI destroyed its own evidence, and reported success.** `tests/e2e/test_clean_startup.py`
+opens with `docker compose down -v` and sorts first in its directory, so the single
+`pytest tests/e2e` step wiped the dataset and credentials provisioned two steps earlier.
+The consequence was worse than a failure: `test_credentials_lifecycle.py` hit its
+"environment not seeded" guard and **skipped the entire authentication lifecycle suite**,
+green. Clean startup is now its own job with its own stack, and CI sets `EAIOS_NO_SKIPS=1`
+— every skip guard in these suites asks "is the stack up?", which in CI is true by
+construction, so a skip there is an unchecked requirement. The control is falsified both
+ways: without the flag the probe skips, with it the same skips fail.
+
 ## Open risks
 
-**CI cannot run.** `.github/workflows/ci.yml` carries the credentials step and the named
-authorization suite, and both are correct — but git was removed from this project, so
-FR-037's "must run in continuous integration and must block the change on failure" is
-currently unmet, as are spec 001's FR-047c and SC-012. Restoring from
-`Desktop\eaios-history.bundle` re-enables them.
+**CI has still never run.** Git history is restored — `Desktop\eaios-history.bundle` was
+cloned to `Grad_Project-restored`, which now carries this work — but the GitHub remote was
+deleted, so nothing can be pushed and no workflow can be triggered. FR-037's "must run in
+continuous integration and must block the change on failure" therefore remains unmet, as
+do spec 001's FR-047c and SC-012. **This is the single blocking item**: an empty remote is
+all that is needed, and the two CI defects found above show exactly why local evidence
+does not substitute — both were invisible on a developer machine and both would have
+produced a green run that had checked nothing.
 
 **Cross-platform determinism is failing and unverifiable locally.** The one CI run this
 project ever had showed Ubuntu and Windows producing different dataset fingerprints,
 which makes SC-002 false. It is a feature 001 defect, unrelated to this feature, and
 only the CI matrix can observe it.
 
-**Sign-in bounds fail open when Redis is unavailable**, a per-account lockout is a
-bounded denial of service against that account, the demo password is shared across all
-seeded users, and HS256 means the verifier can also mint. All four are stated in
-[plan.md](plan.md) and none is a defect.
+**A per-account lockout is a bounded denial of service** against that account, the demo
+password is shared across all seeded users, and HS256 means the verifier can also mint.
+All three are stated in [plan.md](plan.md) and none is a defect. The fourth entry that
+stood here — "sign-in bounds fail open when Redis is unavailable" — was not a risk but an
+unmet MUST, and is fixed above; leaving it listed would have contradicted the correction
+recorded twenty lines earlier.
+
+**HS256 holds only while FastAPI alone verifies.** Feature 004's orchestrator must receive
+the immutable access context from FastAPI and must never receive the signing key. The day
+a second service verifies tokens, this becomes an asymmetric key pair —
+`AuthSettings.jwt_algorithm` is pinned as a list at every call site precisely so that
+change is one edit and not a hunt.

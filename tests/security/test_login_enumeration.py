@@ -399,6 +399,81 @@ class TestTheAttemptBoundsHold:
         )
 
 
+class TestTheBoundFailsClosed:
+    """FR-007a says failed sign-in attempts **MUST** be bounded.
+
+    The first implementation failed open — an unreachable Redis meant no bound, and
+    that was written down as a "residual risk". It is not a risk, it is the requirement
+    being unmet on exactly the days it matters. A limiter whose failure mode is "no
+    limit" is not a limiter.
+
+    So sign-in now refuses with 503 when the counters cannot be read or written. The
+    trade is deliberate and loud: a cache outage becomes a visible sign-in outage
+    rather than a silent window of unbounded guessing.
+    """
+
+    def _break_redis(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import eaios_api.auth.login_bounds as bounds
+
+        def unavailable() -> object:
+            raise ConnectionError("redis is down")
+
+        monkeypatch.setattr(bounds, "get_redis", unavailable)
+
+    def test_sign_in_is_refused_when_the_limiter_is_unreachable(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        person = load_person(EMPLOYEE)
+        self._break_redis(monkeypatch)
+
+        response = sign_in(client, person.email)
+        assert response.status_code == 503, (
+            "sign-in proceeded without an enforceable bound; FR-007a's MUST has no"
+            f" exception for a dependency being down (got {response.status_code})"
+        )
+
+    def test_the_correct_password_is_refused_too(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The half that makes it a real closure. Refusing only *wrong* passwords while
+        the limiter is down would leave the guessing loop working perfectly."""
+        person = load_person(EMPLOYEE)
+        self._break_redis(monkeypatch)
+        assert sign_in(client, person.email, DEMO_PASSWORD).status_code == 503
+
+    def test_the_refusal_is_identical_for_every_caller(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Raised before any account lookup, so it cannot distinguish a real address
+        from an invented one — the outage must not become an enumeration oracle."""
+        person = load_person(EMPLOYEE)
+        self._break_redis(monkeypatch)
+
+        known = sign_in(client, person.email)
+        unknown = sign_in(client, "nobody-at-all@niletech.example")
+
+        assert known.status_code == unknown.status_code == 503
+        assert known.text == unknown.text
+
+    def test_the_refusal_names_nothing_internal(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        person = load_person(EMPLOYEE)
+        self._break_redis(monkeypatch)
+
+        body = sign_in(client, person.email).text.lower()
+        for leak in ("redis", "limiter", "counter", "rate", "connection", "traceback"):
+            assert leak not in body, f"the 503 body mentions {leak!r}: {body}"
+
+    def test_sign_in_works_again_once_the_limiter_returns(
+        self, client: TestClient
+    ) -> None:
+        """The control. Without it, "503 while broken" is satisfied by an endpoint that
+        is simply broken."""
+        person = load_person(EMPLOYEE)
+        assert sign_in(client, person.email).status_code == 200
+
+
 class TestLockoutsAreAudited:
     def test_reaching_a_bound_writes_an_audit_entry(self, client: TestClient) -> None:
         """FR-007a: "every lockout MUST be audited". A bound that fires silently is

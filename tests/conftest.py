@@ -180,3 +180,43 @@ def environment_profile(default: str = FALLBACK_PROFILE) -> str:
     except Exception:  # pragma: no cover - environment guard
         return default
     return str(row[0]) if row and row[0] else default
+
+
+#: When set, a skipped test fails the run. Intended for CI, where every dependency this
+#: suite guards against is guaranteed present.
+#:
+#: The environment guards throughout these files — "API is not running", "environment not
+#: seeded", "Docker unavailable" — are right for a laptop and dangerous in CI, because a
+#: step that skips every test in a file reports green. That is not hypothetical here:
+#: `tests/e2e/test_clean_startup.py` runs `docker compose down -v`, and it sorts first, so
+#: `test_credentials_lifecycle.py` met an unseeded database and skipped itself — the
+#: entire authentication lifecycle suite, passing while checking nothing.
+_NO_SKIPS = os.environ.get("EAIOS_NO_SKIPS") == "1"
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(  # type: ignore[no-untyped-def]
+    item: pytest.Item, call: pytest.CallInfo[None]
+):
+    """Turn a skip into a failure when `EAIOS_NO_SKIPS=1`.
+
+    Applied at report time rather than by patching `pytest.skip`, so it catches every
+    form: the function call, `pytest.mark.skipif`, and a fixture that skips during setup.
+    `xfail` is deliberately untouched — it records a known failure rather than an absence
+    of evidence.
+    """
+    outcome = yield
+    if not _NO_SKIPS:
+        return
+
+    report = outcome.get_result()
+    if report.outcome != "skipped" or hasattr(report, "wasxfail"):
+        return
+
+    # A skip report's `longrepr` is `(path, lineno, reason)`; a failure's is text.
+    reason = report.longrepr[2] if isinstance(report.longrepr, tuple) else report.longrepr
+    report.outcome = "failed"
+    report.longrepr = (
+        "skipped under EAIOS_NO_SKIPS=1 — in CI every dependency is present, so a skip"
+        f" is an unchecked requirement rather than a passing one: {reason}"
+    )

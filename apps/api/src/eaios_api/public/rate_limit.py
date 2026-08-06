@@ -43,6 +43,7 @@ deliberate:
 from __future__ import annotations
 
 import hashlib
+import socket
 from dataclasses import dataclass
 
 from fastapi import Request
@@ -50,6 +51,7 @@ from fastapi import Request
 from eaios_core.clients.stores import get_redis
 from eaios_core.keys import RATE_LIMIT_PREFIX, rate_limit_key
 from eaios_core.logging import get_logger
+from eaios_core.settings import get_settings
 
 __all__ = [
     "CONTACT_LIMIT",
@@ -57,6 +59,7 @@ __all__ = [
     "REFUSAL_AUDIT_LIMIT",
     "REFUSAL_AUDIT_WINDOW_SECONDS",
     "Decision",
+    "client_address",
     "client_identity",
     "consume",
     "mark_coalesced",
@@ -99,6 +102,77 @@ class Decision:
     limit: int
 
 
+def _trusted_addresses() -> frozenset[str]:
+    """Configured proxy names, resolved to addresses.
+
+    Resolution is necessary because `request.client.host` is an address and the
+    configuration is a name: inside Compose the web container is `web`, and what arrives
+    is `172.x.y.z`. Comparing the two as strings would silently trust nothing, which is
+    the safe direction but would also silently leave the bound counting the proxy — the
+    bug this exists to fix, hidden behind a setting that looked correct.
+
+    Names that do not resolve are skipped rather than raised on: a misconfigured entry
+    must not take the API down, and the consequence of skipping is that the header is
+    ignored, which is the same as having no proxy configured at all.
+
+    Recomputed per call. A container's address changes when it is recreated, and a
+    cached value would keep trusting an address that now belongs to something else —
+    which is precisely the wrong thing to be stale about. The lookup is against Docker's
+    local resolver and is cheap next to the request it accompanies.
+    """
+    resolved: set[str] = set()
+    for name in get_settings().trusted_proxy_hosts:
+        resolved.add(name)
+        try:
+            for info in socket.getaddrinfo(name, None):
+                resolved.add(info[4][0])
+        except OSError:
+            logger.warning("ratelimit.trusted_proxy_unresolved", name=name)
+    return frozenset(resolved)
+
+
+def _is_trusted_proxy(peer: str) -> bool:
+    settings = get_settings()
+    if not settings.trusted_proxy_hosts:
+        # No proxy configured, so `X-Forwarded-For` is ignored outright — the behaviour
+        # this module had before feature 003 introduced one.
+        return False
+    return peer in _trusted_addresses()
+
+
+def client_address(request: Request) -> str:
+    """The caller's address, taking `X-Forwarded-For` **only from a trusted proxy**.
+
+    The module docstring above used to say `X-Forwarded-For` was ignored outright, and
+    ended: "a deployment that adds a proxy must configure the proxy's real-address
+    handling and revisit this." Feature 003 added one. Browser traffic now goes to the
+    site's own origin and Next forwards it, because the API sends no CORS headers and
+    direct browser calls never worked.
+
+    Without this, that fix would have quietly turned a per-visitor bound into a
+    whole-site one: every submission would arrive from the web container, so five
+    enquiries an hour from *anybody* would exhaust the allowance for *everybody*. A
+    rate limit that counts the proxy is a denial-of-service surface, not a protection.
+
+    The trust is narrow and that is the whole safety of it. The header is read only when
+    the **direct peer** is a configured trusted proxy — otherwise anyone could vary a
+    header to get an unlimited number of buckets, which is worse than no bound because
+    it looks like one. An untrusted caller's header is ignored entirely, exactly as
+    before.
+    """
+    peer = request.client.host if request.client else "unknown"
+
+    if _is_trusted_proxy(peer):
+        forwarded = request.headers.get("x-forwarded-for", "")
+        # Left-most entry is the original client; the rest are intermediaries. Taken
+        # only because the peer is trusted to have set it honestly.
+        original = forwarded.split(",")[0].strip()
+        if original:
+            return original
+
+    return peer
+
+
 def client_identity(request: Request) -> str:
     """A stable, non-obvious key for the caller's address.
 
@@ -106,8 +180,7 @@ def client_identity(request: Request) -> str:
     a unix socket — so every caller still shares one bucket rather than bypassing the
     bound by being unidentifiable.
     """
-    address = request.client.host if request.client else "unknown"
-    return hashlib.sha256(address.encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(client_address(request).encode("utf-8")).hexdigest()[:32]
 
 
 def consume(bucket: str, identity: str, *, limit: int, window_seconds: int) -> Decision:

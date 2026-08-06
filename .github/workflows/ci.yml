@@ -169,8 +169,21 @@ jobs:
       - name: Tenant isolation
         run: uv run python -m pytest tests/security -m security -v
 
+      # `test_clean_startup.py` is excluded here and runs in its own job below. It
+      # opens with `docker compose down -v`, and it sorts first — so in one combined
+      # step it destroyed the dataset and the credentials that the two steps above had
+      # just provisioned. What followed was worse than a failure: `credentials` skipped
+      # itself with "environment not seeded", and the authentication lifecycle suite
+      # reported green having run nothing.
+      #
+      # EAIOS_NO_SKIPS makes that unrepeatable. Every skip guard in these files is an
+      # "is the stack up?" check, and in CI the stack is up by construction.
       - name: Determinism and lifecycle
-        run: uv run python -m pytest tests/e2e -m e2e -v
+        env:
+          EAIOS_NO_SKIPS: "1"
+        run: |
+          uv run python -m pytest tests/e2e -m e2e -v \
+            --ignore=tests/e2e/test_clean_startup.py
 
       - name: Public content carries nothing sensitive
         run: uv run python -m pytest tests/security/test_public_content.py -m security -v
@@ -208,6 +221,37 @@ jobs:
         run: |
           docker compose -f infrastructure/docker-compose.yml --env-file .env \
             run --rm --no-deps -T seed verify --profile smoke
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f infrastructure/docker-compose.yml logs
+
+  # ---------------------------------------------------------------------------
+  # One command, from nothing (spec 001 FR-002, FR-004, SC-001).
+  #
+  # Its own job because the test tears the stack down to bare volumes and brings it
+  # back — which is precisely the thing being measured, and precisely why it cannot
+  # share a runner with steps that need a seeded database. It ran inside the `stack`
+  # job until it was found deleting that job's data out from under the six steps
+  # after it.
+  # ---------------------------------------------------------------------------
+  clean-startup:
+    name: clean startup (SC-001)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.18"
+          enable-cache: true
+      - run: uv sync
+
+      - name: One command, from a torn-down state
+        env:
+          EAIOS_NO_SKIPS: "1"
+        run: |
+          cp infrastructure/.env.example .env
+          uv run python -m pytest tests/e2e/test_clean_startup.py -m e2e -v
 
       - name: Dump logs on failure
         if: failure()

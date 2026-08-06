@@ -8,26 +8,28 @@
  * rather than being misaddressed.
  */
 
-/** For code running in the browser. Must be inlined at build time, hence NEXT_PUBLIC_. */
-export const apiBaseBrowser = (): string =>
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
-/** For code running on the server (route handlers, server components). */
+/**
+ * For code running on the server: route handlers and server components.
+ *
+ * **The only API base there is now, and that is the fix rather than a tidy-up.**
+ *
+ * There were three: `apiBaseServer`, `apiBaseBrowser`, and an `apiBase` that chose
+ * between them by execution context. The browser-facing pair existed so client
+ * components could call the API directly — which does not work. A cross-origin POST
+ * with a JSON body needs a CORS preflight and the API answers `OPTIONS` with 405; a
+ * cross-origin GET is sent but its response is unreadable without
+ * `Access-Control-Allow-Origin`, which the API does not send. Both were verified
+ * against the running stack.
+ *
+ * Every browser-originated call now goes to the site's own origin — `/api/contact`,
+ * `/api/upstream/*`, `/portal/api/*` — and the server forwards it. So nothing in the
+ * browser needs the API's address, and a function that hands one out is a way for that
+ * to be reintroduced by accident.
+ */
 export const apiBaseServer = (): string =>
   process.env.API_INTERNAL_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://localhost:8000";
-
-/**
- * Whichever base the *caller* can actually reach.
- *
- * `submitContact` runs in the browser (the form is a client component) but is
- * defined beside the server-side readers. Picking the base by execution context
- * keeps one function correct in both places; hard-coding either one makes it fail
- * in the other, and the failure reads as the API being down.
- */
-export const apiBase = (): string =>
-  typeof window === "undefined" ? apiBaseServer() : apiBaseBrowser();
 
 /** Absolute origin of the site itself — canonical URLs and the sitemap need it. */
 export const siteUrl = (): string =>

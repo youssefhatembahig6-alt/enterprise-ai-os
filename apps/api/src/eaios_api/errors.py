@@ -30,9 +30,11 @@ __all__ = [
     "AccessDeniedError",
     "NotAuthenticatedError",
     "ResourceAbsentError",
+    "SecurityControlUnavailableError",
     "access_denied_handler",
     "not_authenticated_handler",
     "resource_absent_handler",
+    "security_control_unavailable_handler",
 ]
 
 
@@ -54,6 +56,19 @@ class ResourceAbsentError(Exception):
 
     Raised for a resource in another tenant and for an identifier that exists nowhere.
     That the two are indistinguishable is the requirement, not a simplification.
+    """
+
+
+class SecurityControlUnavailableError(Exception):
+    """A control that MUST hold cannot be evaluated. Answered 503.
+
+    Distinct from a 500: nothing is broken, a dependency is unreachable, and the
+    correct response is to refuse rather than to proceed without the control. FR-007a
+    says sign-in attempts must be bounded, and an implementation that dropped the bound
+    whenever Redis blinked would satisfy that requirement only while it was not needed.
+
+    Raised before any account is looked up, so the response is identical for every
+    caller and reveals nothing about which accounts exist.
     """
 
 
@@ -88,4 +103,18 @@ async def resource_absent_handler(request: Request, exc: Exception) -> JSONRespo
         404,
         "Not found",
         "No such record.",
+    )
+
+
+async def security_control_unavailable_handler(
+    request: Request, exc: Exception
+) -> JSONResponse:
+    del request, exc
+    # Says a service is unavailable and nothing about which one or why. "Try shortly"
+    # is true and actionable; naming the limiter would tell a caller precisely which
+    # protection is currently absent.
+    return _problem(
+        503,
+        "Temporarily unavailable",
+        "Sign-in is unavailable at the moment. Please try again shortly.",
     )

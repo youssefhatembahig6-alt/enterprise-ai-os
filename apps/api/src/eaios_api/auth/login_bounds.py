@@ -17,9 +17,24 @@ with the sweep it already runs. The identities are digests, never the address or
 email: the reasoning is the one already written in `public/rate_limit.py`, and it
 applies with more force here because an email is a person's name.
 
-**Fails open when Redis is unavailable.** Refusing every sign-in because a cache is
-down turns a cache outage into a total outage. The credential check itself is
-unaffected, so the exposure is unbounded guessing for the duration — not free entry.
+**Fails CLOSED when Redis is unavailable**, and the reasoning changed.
+
+The first version failed open, on the argument that refusing every sign-in because a
+cache is down turns a cache outage into a total outage. That is a real cost and it is
+not the point. FR-007a says failed sign-in attempts **MUST** be bounded. An
+implementation that silently removes the bound whenever a dependency is unreachable
+does not satisfy a MUST — it satisfies it on the days nothing is wrong, which is
+exactly when it is not needed. Calling the gap a "residual risk" was a way of writing
+down that the requirement was unmet without treating it as unmet.
+
+So an unavailable limiter now refuses sign-in with a generic 503. The trade is
+deliberate: a cache outage becomes a sign-in outage, loudly, rather than a silent
+window of unbounded credential guessing that nothing would ever report. A limiter whose
+failure mode is "no limit" is not a limit.
+
+It leaks nothing. The refusal happens **before** any account lookup, so it is identical
+for every caller — an unknown address, a real one, and a locked one all get the same
+503, and no comparison between them says whether an account exists.
 """
 
 from __future__ import annotations
@@ -41,9 +56,24 @@ from eaios_core.settings import Settings, get_settings
 
 from ..public.rate_limit import client_identity
 
-__all__ = ["BoundState", "clear_account", "current_state", "record_failure"]
+__all__ = [
+    "BoundState",
+    "LimiterUnavailableError",
+    "clear_account",
+    "current_state",
+    "record_failure",
+]
 
 logger = get_logger(__name__)
+
+
+class LimiterUnavailableError(Exception):
+    """The attempt counters cannot be reached, so the bound cannot be enforced.
+
+    Raised rather than swallowed. FR-007a's "MUST be bounded" has no exception for a
+    dependency being down, and a function that returned "zero failures so far" when it
+    could not tell would be reporting a fact it does not have.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,9 +134,9 @@ def current_state(
         # is declared as returning an awaitable. This client is the synchronous one.
         counters = cast("list[Any]", client.mget([account_key, address_key]))
         account, address = counters[0], counters[1]
-    except Exception:  # pragma: no cover - exercised by taking Redis down
+    except Exception as exc:  # pragma: no cover - exercised by taking Redis down
         logger.warning("login_bounds.unavailable", operation="read")
-        return _state(0, 0, cfg)
+        raise LimiterUnavailableError("attempt counters unreachable") from exc
     return _state(int(account or 0), int(address or 0), cfg)
 
 
@@ -137,9 +167,12 @@ def record_failure(
         # in `public/rate_limit.py` for the same reason.
         results = cast("list[Any]", pipeline.execute())  # type: ignore[no-untyped-call]
         account, address = int(results[0]), int(results[2])
-    except Exception:  # pragma: no cover - exercised by taking Redis down
+    except Exception as exc:  # pragma: no cover - exercised by taking Redis down
+        # A failure that cannot be counted is a failure that does not count towards the
+        # bound. Raising means the caller refuses rather than quietly letting this
+        # attempt — and every attempt while the outage lasts — be free.
         logger.warning("login_bounds.unavailable", operation="record")
-        return _state(0, 0, cfg), False
+        raise LimiterUnavailableError("attempt counters unreachable") from exc
 
     state = _state(account, address, cfg)
     just_reached = (

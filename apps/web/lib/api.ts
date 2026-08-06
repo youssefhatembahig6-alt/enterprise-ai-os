@@ -28,7 +28,7 @@ import type {
   ValidationProblem,
 } from "@eaios/contracts";
 
-import { apiBase, apiBaseServer } from "./config";
+import { apiBaseServer } from "./config";
 
 export type {
   ContactAccepted,
@@ -132,7 +132,19 @@ export type ContactOutcome =
  * that sentence, so a second copy written here would be one more thing to drift.
  */
 export async function submitContact(input: ContactSubmissionInput): Promise<ContactOutcome> {
-  const response = await fetch(`${apiBase()}/public/contact`, {
+  // Posts to the site's own route handler, **not** to the API.
+  //
+  // It used to go straight to `apiBase()`, which in a browser is a different origin
+  // (`:3000` → `:8000`). With `content-type: application/json` that requires a CORS
+  // preflight, and the API registers no CORS middleware — so this form has never
+  // actually submitted from a real browser. Nothing noticed: the server-side tests post
+  // to the endpoint directly, and every browser test stubbed the request with
+  // `page.route`, asserting that the form handles a response and never that it can get
+  // one. Feature 003 found it while designing the portal (research F1).
+  //
+  // Same-origin now, matching `/portal/api/*`: one architecture for browser-to-API
+  // traffic, and no preflight to answer.
+  const response = await fetch("/api/contact", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
@@ -170,5 +182,5 @@ export async function submitContact(input: ContactSubmissionInput): Promise<Cont
     };
   }
 
-  throw new ApiError("/public/contact", response.status);
+  throw new ApiError("/api/contact", response.status);
 }
