@@ -1,0 +1,532 @@
+openapi: 3.1.0
+
+# ---------------------------------------------------------------------------
+# Feature 003 — authenticated API surface.
+#
+# This file is the *intent*. The authority is the API's own `/openapi.json`,
+# generated from the Pydantic models; `packages/contracts/scripts/verify.mjs`
+# regenerates the TypeScript client against the running API and fails on drift.
+# When the two disagree, the running API wins and this file is corrected —
+# feature 002 shipped a published schema that advertised a 422 body the server
+# never sent, and nothing compared the two.
+#
+# Every response body below is a declared model. There are no free-form JSON
+# payloads at this boundary (Constitution: API contracts).
+# ---------------------------------------------------------------------------
+
+info:
+  title: Enterprise AI OS — Authenticated API
+  version: 0.1.0
+  description: |
+    Sign-in, session, access context, and the HR-profile vertical slice.
+
+    Authentication is a bearer JWT. In the browser it is carried by an httpOnly
+    cookie set by the site's own route handlers and never read by JavaScript
+    (research R3); the API accepts it in either the `Authorization` header or
+    the `eaios_session` cookie, and treats the two identically.
+
+    **Refusal semantics** (FR-019, FR-020, FR-021, FR-030):
+
+    * `401` — missing, malformed, expired, or otherwise invalid identity.
+    * `403` — verified identity, refused by authorization layers 2 through 5.
+    * `404` — the resource belongs to another tenant. Layer 1 is the tenant
+      boundary, applied before authorization, so the resource is *absent*
+      rather than denied. Byte-identical to the response for an identifier
+      that belongs to nobody.
+
+    No refusal body carries a stack trace, query text, internal identifier, or
+    any signal about whether the resource exists elsewhere (FR-022).
+
+servers:
+  - url: http://localhost:8000
+    description: Local Compose stack
+
+tags:
+  - name: auth
+    description: Sign-in, sign-out, and session state.
+  - name: me
+    description: The authenticated caller's own identity and access context.
+  - name: hr
+    description: The HR-profile vertical slice.
+
+security:
+  - sessionCookie: []
+  - bearerAuth: []
+
+paths:
+
+  # -----------------------------------------------------------------------
+  # Authentication
+  # -----------------------------------------------------------------------
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Exchange credentials for a session
+      security: []          # the one unauthenticated endpoint in this surface
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: |
+            Signed in. The token is returned in the body for server-side
+            callers; the site's route handler moves it into an httpOnly cookie
+            and does not pass it to the browser.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginAccepted" }
+        "401":
+          description: |
+            Refused. **Byte-identical** for every cause: unknown email, wrong
+            password, inactive user, no credential provisioned, and a reached
+            attempt bound. No `Retry-After`, no remaining-attempt count, no
+            indication that the account exists (FR-007a, FR-022).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+              example:
+                title: Sign-in failed
+                status: 401
+                detail: Those sign-in details were not accepted.
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: End the current session
+      description: |
+        Marks the server-side session row ended. The previously issued token
+        stops being accepted immediately — that is the whole reason sessions
+        are server state (FR-007). Replaying the exact token afterwards is what
+        SC-002a measures; observing that the browser stopped sending it is not.
+      responses:
+        "204":
+          description: Session ended. Idempotent — ending an already-ended session succeeds.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /auth/session:
+    get:
+      tags: [auth]
+      summary: Current session state
+      description: |
+        Lets the portal distinguish "expired" from "never signed in" and show
+        the designed expiry state rather than a generic failure (FR-027).
+      responses:
+        "200":
+          description: The session is live.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionState" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  # -----------------------------------------------------------------------
+  # The caller
+  # -----------------------------------------------------------------------
+
+  /me:
+    get:
+      tags: [me]
+      summary: The authenticated user's identity
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CurrentUser" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /me/access-context:
+    get:
+      tags: [me]
+      summary: What the server believes about the caller
+      description: |
+        FR-011. Exists so the access context is observable rather than
+        inferred. Returns exactly what the policy engine was handed — if this
+        disagrees with a decision, one of the two is wrong and it is visible.
+
+        Contains no credential, no token, and no session identifier.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessContextView" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /me/hr-profile:
+    get:
+      tags: [hr]
+      summary: The caller's own HR profile
+      description: |
+        FR-023. Requires `hr:read_self`. Writes **no** audit entry — reading
+        one's own non-compensation profile is not in the sensitive set
+        (FR-017a), and its absence from the trail is by design.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HrProfile" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /me/direct-reports:
+    get:
+      tags: [hr]
+      summary: The people who report to the caller
+      description: |
+        Requires `hr:read_team`. Returns an empty list — not a refusal — for a
+        permitted caller with no reports, so the portal renders its empty state
+        rather than its access-denied state.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DirectReport" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # -----------------------------------------------------------------------
+  # The demonstration: one address, different answers by caller
+  # -----------------------------------------------------------------------
+
+  /hr/profiles/{user_id}:
+    get:
+      tags: [hr]
+      summary: One employee's HR profile
+      description: |
+        The blueprint's flagship demonstration: the same request succeeds or
+        fails depending on who asks (FR-024).
+
+        Allowed when the subject is the caller (`hr:read_self`), is a **direct
+        report** of the caller (`hr:read_team`, one level — research open
+        question 1), or the caller holds `hr:read_all`. Refused as forbidden
+        otherwise; answered as **not found** when the subject belongs to
+        another tenant (FR-021, FR-030).
+
+        Audited on allow whenever the subject is not the caller (FR-017a), and
+        on every denial (FR-017).
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HrProfile" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /hr/profiles/{user_id}/compensation:
+    get:
+      tags: [hr]
+      summary: One employee's compensation
+      description: |
+        FR-025 — the flagship **denial**. Requires `hr:read_all`; a manager
+        reading their own direct report is refused without it.
+
+        Compensation is a separate address rather than a field on the profile
+        precisely so the refusal happens before the query. On a denied request
+        no statement touching `employee_profiles.salary_amount` executes, which
+        is what SC-007 measures by inspecting the request path (research R7).
+
+        Every outcome is audited, including an allow for the caller's own
+        record (FR-017a, clause 2).
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Compensation" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: eaios_session
+
+  responses:
+    Unauthenticated:
+      description: Missing, malformed, expired, or otherwise invalid identity (FR-019).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            title: Not signed in
+            status: 401
+            detail: This request needs a valid session.
+    Forbidden:
+      description: |
+        Verified identity, refused by authorization layers 2 through 5
+        (FR-020). Carries no indication of what would have been permitted.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            title: Not permitted
+            status: 403
+            detail: You do not have access to this record.
+    NotFound:
+      description: |
+        No such record **for this caller**. Returned both for an identifier
+        that exists in another tenant and for one that exists nowhere; the two
+        are indistinguishable, which is the point (FR-021, SC-004).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    ValidationFailed:
+      description: The request body failed validation before any business logic ran.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ValidationProblem" }
+
+  schemas:
+
+    Problem:
+      type: object
+      description: |
+        The refusal envelope, reusing the shape feature 002 introduced in
+        `public/schemas.py`. Carries nothing internal (FR-022).
+      required: [title, status, detail]
+      additionalProperties: false
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail:
+          type: string
+          description: A sentence written for a person. Never a reason code, never SQL.
+
+    ValidationProblem:
+      type: object
+      required: [title, status, detail, errors]
+      additionalProperties: false
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: array
+          items: { $ref: "#/components/schemas/FieldError" }
+
+    FieldError:
+      type: object
+      required: [field, message]
+      additionalProperties: false
+      properties:
+        field: { type: string }
+        message: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      description: |
+        No company field. The tenant is resolved server-side by looking the
+        email up under each known tenant in turn (research R4); a
+        caller-supplied tenant would be exactly the trusted request value
+        FR-010 forbids.
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Never logged, never audited, never echoed (FR-018).
+          writeOnly: true
+
+    LoginAccepted:
+      type: object
+      required: [access_token, token_type, expires_at, user]
+      additionalProperties: false
+      properties:
+        access_token:
+          type: string
+          description: |
+            JWT. The site's route handler moves this into an httpOnly cookie;
+            it is never handed to browser JavaScript (research R3).
+        token_type: { type: string, const: bearer }
+        expires_at:
+          type: string
+          format: date-time
+          description: The absolute cap — 8 hours from sign-in (FR-005).
+        user: { $ref: "#/components/schemas/CurrentUser" }
+
+    SessionState:
+      type: object
+      required: [session_id, issued_at, absolute_expires_at, idle_expires_at]
+      additionalProperties: false
+      properties:
+        session_id: { type: string, format: uuid }
+        issued_at: { type: string, format: date-time }
+        absolute_expires_at: { type: string, format: date-time }
+        idle_expires_at:
+          type: string
+          format: date-time
+          description: |
+            `last_seen_at + 30 minutes`. Advances with use; the absolute cap
+            never does. Both bounds are enforced by the server regardless of
+            what the interface does with these values (FR-005).
+
+    CurrentUser:
+      type: object
+      required:
+        [user_id, full_name, email, company_name, department, office, roles, permissions]
+      additionalProperties: false
+      properties:
+        user_id: { type: string, format: uuid }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        company_name:
+          type: string
+          description: The name, not the identifier. The portal displays it; nothing keys on it.
+        department: { type: string }
+        office: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+          description: |
+            For display only. Nothing in the interface or the server decides
+            access from these — FR-014 requires permission codes.
+        permissions:
+          type: array
+          items: { type: string }
+          description: |
+            The codes role-aware navigation is built from (FR-028). Hiding an
+            entry is presentation; the server refuses the address regardless.
+
+    AccessContextView:
+      type: object
+      required:
+        [company_id, user_id, department_id, office_id, country, employment_type,
+         manager_id, direct_report_ids, roles, permissions, permission_fingerprint]
+      additionalProperties: false
+      description: |
+        FR-011 — the server's own view of the caller, rendered verbatim. No
+        credential, no token, no session id.
+      properties:
+        company_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        department_id: { type: string, format: uuid }
+        office_id: { type: string, format: uuid }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        employment_type: { type: string, enum: [FULL_TIME, PART_TIME, CONTRACT] }
+        manager_id:
+          type: [string, "null"]
+          format: uuid
+          description: Null for the one manager-less user per company.
+        direct_report_ids:
+          type: array
+          items: { type: string, format: uuid }
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        permission_fingerprint:
+          type: string
+          description: |
+            Digest over company plus sorted permission codes. Feature 004's
+            cache keys are built from it (Constitution Principle III).
+
+    HrProfile:
+      type: object
+      required:
+        [user_id, full_name, email, department, office, country, employment_type,
+         job_title, hire_date, manager_name, leave_balance]
+      additionalProperties: false
+      description: |
+        Carries **no** compensation field of any kind. Salary lives behind
+        `/hr/profiles/{user_id}/compensation` so its denial happens before the
+        query rather than by omission from a response (FR-025, SC-007).
+      properties:
+        user_id: { type: string, format: uuid }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        department: { type: string }
+        office: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        employment_type: { type: string, enum: [FULL_TIME, PART_TIME, CONTRACT] }
+        job_title: { type: string }
+        hire_date: { type: string, format: date }
+        manager_name:
+          type: [string, "null"]
+          description: Null for the one manager-less user per company.
+        leave_balance: { $ref: "#/components/schemas/LeaveBalance" }
+
+    LeaveBalance:
+      type: object
+      required: [leave_type, year, entitlement_days, used_days, remaining_days]
+      additionalProperties: false
+      properties:
+        leave_type: { type: string }
+        year: { type: integer }
+        entitlement_days: { type: integer }
+        used_days: { type: integer }
+        remaining_days: { type: integer }
+
+    DirectReport:
+      type: object
+      required: [user_id, full_name, job_title, department]
+      additionalProperties: false
+      description: |
+        Deliberately thin. A team list is a navigation aid; each profile is
+        fetched by its own authorized request, so this endpoint cannot become
+        a way to read profile content in bulk without a per-record decision.
+      properties:
+        user_id: { type: string, format: uuid }
+        full_name: { type: string }
+        job_title: { type: string }
+        department: { type: string }
+
+    Compensation:
+      type: object
+      required: [user_id, salary_band, salary_amount, currency]
+      additionalProperties: false
+      properties:
+        user_id: { type: string, format: uuid }
+        salary_band: { type: string }
+        salary_amount: { type: string, description: Decimal as a string — never a float. }
+        currency: { type: string, minLength: 3, maxLength: 3 }

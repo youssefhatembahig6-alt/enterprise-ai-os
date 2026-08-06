@@ -80,6 +80,7 @@ def _restore_seeded_environment() -> Iterator[None]:
 
     was_seeded = _has_manifest()
     profile = environment_profile()
+    had_credentials = _has_credentials()
     yield
     _alembic("upgrade", "head")
     if was_seeded:
@@ -96,6 +97,31 @@ def _restore_seeded_environment() -> Iterator[None]:
             f"restored the environment at a different profile than it started with "
             f"(was {profile!r})"
         )
+
+    if had_credentials:
+        # `reset` truncates `user_credentials` along with every other runtime table, so
+        # the restored environment has a complete dataset and nobody who can sign in.
+        # Without this, every authentication test that runs after this module — and
+        # pytest orders files alphabetically, so that is all of them — skips itself with
+        # "no credentials provisioned" and the suite reports success having checked
+        # none of them. Twelve tests were doing exactly that before this line existed.
+        result = run_seed_cli("credentials")
+        assert result.returncode == 0, (
+            "failed to re-provision credentials after the destructive migration tests: "
+            f"{result.stderr[-1200:]}"
+        )
+        assert _has_credentials(), "credentials command reported success and wrote none"
+
+
+def _has_credentials() -> bool:
+    try:
+        engine = create_engine(_owner_url())
+        with engine.connect() as conn:
+            return bool(
+                conn.execute(text("SELECT count(*) FROM user_credentials")).scalar_one()
+            )
+    except Exception:  # pragma: no cover - environment guard
+        return False
 
 
 def _has_manifest() -> bool:

@@ -24,6 +24,17 @@ dependencies = [
     "minio==7.2.13",
     "fastapi==0.115.6",
     "uvicorn[standard]==0.34.0",
+    # Feature 003. Argon2id is the first choice for new password storage, and the
+    # encoded output carries its own salt and parameters — so `verify` reads them from
+    # the stored value rather than from configuration that could drift away from it
+    # (spec 003 FR-002, research R1). `passlib` was rejected: it is unmaintained since
+    # 2020 and breaks against modern bcrypt, which is the wrong risk to accept in the
+    # credential layer specifically.
+    "argon2-cffi==25.1.0",
+    # Token mint and verify. Verification pins `algorithms=[...]` explicitly; an
+    # unpinned verifier accepts `alg: none` and accepts an RS256 public key presented
+    # as an HMAC secret (research R2).
+    "PyJWT==2.10.1",
     "celery[redis]==5.4.0",
     "Faker==33.3.0",
     "Jinja2==3.1.5",
@@ -68,6 +79,10 @@ ignore = ["E501", "RUF002"]
 # `Depends(...)` in a parameter default is the FastAPI idiom, not a mutable default.
 "apps/api/src/eaios_api/health/*.py" = ["B008"]
 "apps/api/src/eaios_api/public/*.py" = ["B008"]
+"apps/api/src/eaios_api/auth/*.py" = ["B008"]
+"apps/api/src/eaios_api/authz/*.py" = ["B008"]
+"apps/api/src/eaios_api/me/*.py" = ["B008"]
+"apps/api/src/eaios_api/hr/*.py" = ["B008"]
 # `PgUUID` aliases a class that ruff reads as a constant because of its casing.
 "packages/core/src/eaios_core/models/*.py" = ["N811"]
 # Migrations use the same PgUUID alias as the models they mirror.

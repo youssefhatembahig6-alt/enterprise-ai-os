@@ -50,7 +50,10 @@ QDRANT_COLLECTIONS: tuple[str, ...] = ("documents", "code")
 #: submission written before seeding would leave the environment non-empty in a
 #: way the pre-flight could not see, and `seed` would proceed against a dirty
 #: database. That is precisely the state FR-014 exists to refuse.
-RUNTIME_TABLES: tuple[str, ...] = ("contact_submissions",)
+#: `sessions` and `user_credentials` join for the same reason (spec 003). Credentials
+#: are written by a step that runs *after* seeding, so a re-seed of an environment that
+#: still held them would leave rows pointing at users that no longer exist.
+RUNTIME_TABLES: tuple[str, ...] = ("contact_submissions", "sessions", "user_credentials")
 
 #: Payload fields indexed up front. Adding company_id to a populated collection
 #: later is a reindex, and the filter path must exist before any content does.

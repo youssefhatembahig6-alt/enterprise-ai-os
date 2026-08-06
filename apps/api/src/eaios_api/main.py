@@ -12,8 +12,19 @@ from fastapi.exceptions import RequestValidationError
 from eaios_core.logging import bind_request, clear_context, configure_logging, get_logger
 from eaios_core.settings import get_settings
 
+from .auth.router import router as auth_router
+from .errors import (
+    AccessDeniedError,
+    NotAuthenticatedError,
+    ResourceAbsentError,
+    access_denied_handler,
+    not_authenticated_handler,
+    resource_absent_handler,
+)
 from .health.manifest_router import router as manifest_router
 from .health.router import router as health_router
+from .hr.router import router as hr_router
+from .me.router import router as me_router
 from .public.errors import (
     PublicNotFoundError,
     PublicRateLimitedError,
@@ -74,6 +85,9 @@ def create_app() -> FastAPI:
     application.include_router(health_router)
     application.include_router(manifest_router)
     application.include_router(public_router)
+    application.include_router(auth_router)
+    application.include_router(me_router)
+    application.include_router(hr_router)
 
     # Public-form validation failures are rewritten into the shape
     # contracts/public-api.yaml declares, with messages a visitor can act on
@@ -85,6 +99,15 @@ def create_app() -> FastAPI:
     application.add_exception_handler(PublicNotFoundError, public_not_found_handler)
     # FR-024d — the contact form's per-address bound.
     application.add_exception_handler(PublicRateLimitedError, public_rate_limited_handler)
+
+    # Feature 003. Three statuses, and the difference between them is the feature:
+    # 401 for no usable identity, 403 for a verified identity refused by authorization,
+    # 404 for a resource in another tenant — which is *absent* rather than denied,
+    # because the tenant boundary is layer 1 and is applied before authorization
+    # (FR-019, FR-020, FR-021, FR-030).
+    application.add_exception_handler(NotAuthenticatedError, not_authenticated_handler)
+    application.add_exception_handler(AccessDeniedError, access_denied_handler)
+    application.add_exception_handler(ResourceAbsentError, resource_absent_handler)
     return application
 
 

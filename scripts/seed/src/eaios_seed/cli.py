@@ -26,6 +26,7 @@ from eaios_core.settings import get_settings
 
 from .audit_checks.structural import run_structural_audit
 from .config import SeedConfig
+from .credentials import AmbiguousEmailError, provision_credentials
 from .loaders.stores import (
     inspect_stores,
     load_objects,
@@ -161,6 +162,66 @@ def reset(
     typer.echo("")
     typer.echo(f"  rows        {dataset.total_rows:,}")
     typer.echo(f"  fingerprint {manifest_row['root_fingerprint']}")
+    # `reset` truncates `user_credentials` along with every other runtime table, so a
+    # reset environment has a complete dataset and nobody who can sign in. Said out
+    # loud because a reset that silently leaves the portal unusable is exactly the
+    # failure this project keeps finding: correct behaviour, invisible consequence.
+    typer.echo("")
+    typer.echo("  Credentials were destroyed with everything else.")
+    typer.echo("  Run `make credentials` before signing in to the portal.")
+
+
+@app.command()
+def credentials(
+    password: Annotated[
+        str | None,
+        typer.Option("--password", help="Overrides AUTH_DEMO_PASSWORD for this run."),
+    ] = None,
+) -> None:
+    """Establish sign-in credentials for every active seeded user (spec 003 FR-002a).
+
+    Run after `seed`, and again after `reset`. Rewrites every row rather than skipping
+    users that already have one, so a changed password always takes effect.
+    """
+    settings = get_settings()
+
+    # The same outer guard `reset` applies, for the same reason: what this writes is a
+    # deliberately weak, shared, documented local placeholder. There is no environment
+    # other than `local` where writing it would be anything but a mistake.
+    if not settings.is_local:
+        typer.echo(
+            f"REFUSED: environment is {settings.environment!r}, not 'local'."
+            " Demo credentials are local-only placeholders and are never provisioned"
+            " anywhere else.",
+            err=True,
+        )
+        raise typer.Exit(EXIT_REFUSED)
+
+    secret = password if password is not None else settings.auth.demo_password.get_secret_value()
+
+    try:
+        result = provision_credentials(create_owner_engine(settings), secret)
+    except AmbiguousEmailError as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(EXIT_REFUSED) from exc
+
+    if result.written == 0:
+        typer.echo(
+            "REFUSED: no active users found. Run `make seed` first — provisioning"
+            " credentials against an empty database succeeds while doing nothing.",
+            err=True,
+        )
+        raise typer.Exit(EXIT_REFUSED)
+
+    typer.echo("")
+    typer.echo(f"  credentials {result.written}")
+    typer.echo(f"  tenants     {result.companies}")
+    typer.echo("")
+    # The password is echoed deliberately. It is a local placeholder by construction —
+    # the guard above makes that true — and a demo credential nobody can find is a demo
+    # that does not run. Nothing else in this system ever prints one.
+    typer.echo(f"  Sign in with any seeded email and the password: {secret}")
+    typer.echo("  Addresses are listed in docs/personas.md (`make docs`).")
 
 
 @app.command()

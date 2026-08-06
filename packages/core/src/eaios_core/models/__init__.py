@@ -6,6 +6,7 @@ Alembic and the schema audit both walk.
 
 from __future__ import annotations
 
+from .auth import UserCredential, UserSession
 from .base import Base
 from .global_ import DatasetManifest, Permission, PlatformAdministrator
 from .hr import (
@@ -71,7 +72,9 @@ __all__ = [
     "Service",
     "TrainingRecord",
     "User",
+    "UserCredential",
     "UserRole",
+    "UserSession",
     "Vacancy",
     "baseline_tables",
     "classification_enum",
@@ -91,7 +94,15 @@ __all__ = [
 #:
 #: A model added by a future migration MUST be named here. `tests/integration/
 #: test_migrations.py` runs the full round trip and fails if it is not.
-POST_BASELINE_TABLES: frozenset[str] = frozenset({"contact_submissions"})
+POST_BASELINE_TABLES: frozenset[str] = frozenset(
+    {
+        # Migration 0003
+        "contact_submissions",
+        # Migration 0004 (feature 003)
+        "user_credentials",
+        "sessions",
+    }
+)
 
 
 def baseline_tables() -> list[str]:

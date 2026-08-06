@@ -24,10 +24,24 @@ GUARDED_ROOTS = [
     REPO_ROOT / "scripts" / "seed" / "src" / "eaios_seed",
 ]
 
-# The clock module is the one sanctioned place that may name these symbols, and
-# the manifest records genuine run metadata (started_at/completed_at) which is
-# deliberately excluded from the fingerprint.
-EXEMPT_FILES = {"clock.py", "manifest.py"}
+# Exempt by **path**, not by bare filename. The set used to hold `{"clock.py",
+# "manifest.py"}`, which exempted any file with either name anywhere under the guarded
+# roots — so a second `manifest.py` added later would have inherited an exemption
+# nobody granted it. Each entry below names one file and says why it has one.
+EXEMPT_FILES = {
+    # The one sanctioned place that may name these symbols.
+    REPO_ROOT / "packages/core/src/eaios_core/clock.py",
+    # Records genuine run metadata (started_at / completed_at), which is deliberately
+    # excluded from the fingerprint.
+    REPO_ROOT / "scripts/seed/src/eaios_seed/manifest.py",
+    # Feature 003. Writes credentials *after* generation, against the database, and is
+    # therefore not generation code at all — its rows never enter `dataset.rows` and
+    # cannot reach the fingerprint (spec 003 FR-002a). It lives under a guarded root
+    # only because the seed CLI is where the command belongs; the determinism rule this
+    # test enforces does not apply to it, and pinning its timestamps to the reference
+    # date would be actively wrong, dating a runtime event to 2026-06-30.
+    REPO_ROOT / "scripts/seed/src/eaios_seed/credentials.py",
+}
 
 BANNED_ATTRIBUTES = {
     ("datetime", "now"),
@@ -45,7 +59,7 @@ def _python_files() -> list[Path]:
     files: list[Path] = []
     for root in GUARDED_ROOTS:
         if root.exists():
-            files.extend(p for p in root.rglob("*.py") if p.name not in EXEMPT_FILES)
+            files.extend(p for p in root.rglob("*.py") if p not in EXEMPT_FILES)
     return sorted(files)
 
 
@@ -67,6 +81,14 @@ def _violations(path: Path) -> list[str]:
 def test_guarded_roots_exist() -> None:
     """A silent pass because the paths moved would defeat the whole test."""
     assert _python_files(), "no Python files found under the guarded roots"
+
+
+def test_every_exemption_names_a_real_file() -> None:
+    """An exemption whose path no longer exists is an exemption that stopped applying
+    to anything — and the file it was written for is now silently guarded, or was
+    renamed and is now silently unguarded. Either way somebody should look."""
+    missing = sorted(str(p.relative_to(REPO_ROOT)) for p in EXEMPT_FILES if not p.is_file())
+    assert missing == [], f"exempted files that do not exist: {missing}"
 
 
 def test_no_wall_clock_access_in_generation_code() -> None:

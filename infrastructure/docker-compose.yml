@@ -30,6 +30,19 @@ x-python-env: &python-env
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-eaios_local_only_secret}
   MINIO_BUCKET: ${MINIO_BUCKET:-eaios}
   MINIO_SECURE: "false"
+  # Feature 003. Shared by api, worker, and seed through this anchor: the API mints
+  # and verifies, and the seed container runs `credentials`, so both need the same
+  # values. A signing key that differed between them would produce tokens the API
+  # rejects, with nothing to say why.
+  AUTH_JWT_SIGNING_KEY: ${AUTH_JWT_SIGNING_KEY:-eaios_jwt_local_only_not_a_real_secret}
+  AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-eaios-api}
+  AUTH_JWT_AUDIENCE: ${AUTH_JWT_AUDIENCE:-eaios-portal}
+  AUTH_IDLE_TIMEOUT_SECONDS: ${AUTH_IDLE_TIMEOUT_SECONDS:-1800}
+  AUTH_ABSOLUTE_LIFETIME_SECONDS: ${AUTH_ABSOLUTE_LIFETIME_SECONDS:-28800}
+  AUTH_LOGIN_ACCOUNT_MAX_FAILURES: ${AUTH_LOGIN_ACCOUNT_MAX_FAILURES:-5}
+  AUTH_LOGIN_ADDRESS_MAX_FAILURES: ${AUTH_LOGIN_ADDRESS_MAX_FAILURES:-20}
+  AUTH_LOGIN_BOUND_WINDOW_SECONDS: ${AUTH_LOGIN_BOUND_WINDOW_SECONDS:-900}
+  AUTH_DEMO_PASSWORD: ${AUTH_DEMO_PASSWORD:-eaios-demo-local-only}
 
 services:
   # ---------------------------------------------------------------- stores ---

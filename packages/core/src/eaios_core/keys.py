@@ -16,10 +16,13 @@ from .classification import Classification
 from .tenancy import require_company
 
 __all__ = [
+    "LOGIN_ACCOUNT_BUCKET",
+    "LOGIN_ADDRESS_BUCKET",
     "RATE_LIMIT_PREFIX",
     "cache_key",
     "cache_namespace",
     "company_of_storage_key",
+    "login_identity",
     "rate_limit_key",
     "rate_limit_namespace",
     "storage_key",
@@ -116,3 +119,33 @@ def rate_limit_namespace() -> str:
     anonymous and have no tenant, which is the whole reason the bounds exist.
     """
     return f"{RATE_LIMIT_PREFIX}:*"
+
+
+#: Sign-in attempt buckets (spec 003 FR-007a).
+#:
+#: Declared here rather than in the API package for the reason `RATE_LIMIT_PREFIX`
+#: gives above: `reset_all` clears these keys by pattern, and the seed must not import
+#: from `apps/api`. Sharing the prefix means the sign-in bounds are cleared by the same
+#: sweep that already clears the anonymous ones, with nothing new to remember.
+#:
+#: Neither bucket is tenant-scoped. A sign-in attempt has no tenant yet — resolving one
+#: is what the attempt is *for* — so a tenant-scoped counter here would be a counter
+#: keyed on a value that does not exist at the moment it is needed.
+LOGIN_ACCOUNT_BUCKET: Final[str] = "login:account"
+LOGIN_ADDRESS_BUCKET: Final[str] = "login:address"
+
+
+def login_identity(value: str) -> str:
+    """Digest an email address or a client address for use as a counter key.
+
+    Never the plaintext. An email is personal data and a client address is data the
+    caller never chose to give, and both would otherwise sit in a store that is dumped,
+    logged, and inspected far more casually than the database.
+
+    Be honest about the strength: this is defence against casual disclosure — a key
+    nobody can read at a glance — not anonymisation. An email address is guessable and
+    the IPv4 space is enumerable, so a digest is a lock on the front door, not a vault.
+    Lowercased first so `A@x` and `a@x` share one bucket rather than doubling the
+    attacker's budget.
+    """
+    return hashlib.sha256(value.strip().lower().encode("utf-8")).hexdigest()[:32]

@@ -83,6 +83,52 @@ class MinioSettings(BaseSettings):
     secure: bool = False
 
 
+class AuthSettings(BaseSettings):
+    """Authentication and session parameters (spec 003).
+
+    Every number here is in configuration rather than in code because the
+    specification states them as numbers precisely so they are testable — "MUST
+    expire" and "MUST be bounded" are not assertions anything can make.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AUTH_", extra="ignore")
+
+    #: HS256 signing key. A non-production placeholder by the same convention as the
+    #: database passwords above: complete and working locally, and never a real
+    #: secret. One process both mints and verifies, which is what makes a symmetric
+    #: algorithm sufficient (research R2); the day a second service verifies without
+    #: minting, this becomes a key pair and nothing else changes.
+    jwt_signing_key: SecretStr = SecretStr("eaios_jwt_local_only_not_a_real_secret")
+    jwt_issuer: str = "eaios-api"
+    jwt_audience: str = "eaios-portal"
+
+    #: Pinned, and pinned as a list at every verification call site. An unpinned
+    #: verifier accepts `alg: none` and accepts an RS256 public key presented as an
+    #: HMAC secret — both are in `tests/security/test_token_tampering.py`.
+    jwt_algorithm: Literal["HS256"] = "HS256"
+
+    #: FR-005. Two bounds because they cover different risks: the idle timeout
+    #: protects an unattended machine, and the absolute cap limits how long a stolen
+    #: credential stays useful. Without the second, a credential taken from an active
+    #: session can be kept alive indefinitely simply by using it.
+    idle_timeout_seconds: int = Field(default=30 * 60, gt=0)
+    absolute_lifetime_seconds: int = Field(default=8 * 3600, gt=0)
+
+    #: FR-007a. Both dimensions are required: an address-only bound is defeated by
+    #: spreading attempts across addresses, and an account-only bound lets an attacker
+    #: lock a real user out deliberately. The address ceiling is higher because a
+    #: shared office egress is one address for many people.
+    login_account_max_failures: int = Field(default=5, gt=0)
+    login_address_max_failures: int = Field(default=20, gt=0)
+    login_bound_window_seconds: int = Field(default=15 * 60, gt=0)
+
+    #: FR-002a. The local demo credential, written by `eaios-seed credentials`, which
+    #: refuses to run outside `ENVIRONMENT=local`. Never committed in plain text
+    #: anywhere but here, where it is a placeholder in the same sense as
+    #: `eaios_app_local_only`.
+    demo_password: SecretStr = SecretStr("eaios-demo-local-only")
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -102,6 +148,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = Field(default_factory=RedisSettings)
     qdrant: QdrantSettings = Field(default_factory=QdrantSettings)
     minio: MinioSettings = Field(default_factory=MinioSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
 
     @property
     def is_local(self) -> bool:

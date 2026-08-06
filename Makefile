@@ -5,7 +5,7 @@ COMPOSE := docker compose -f infrastructure/docker-compose.yml --env-file .env
 SEED    := $(COMPOSE) run --rm --no-deps -T seed
 
 .DEFAULT_GOAL := help
-.PHONY: help up down reset seed verify fingerprint migrate test test-unit \
+.PHONY: help up down reset seed credentials verify fingerprint migrate test test-unit \
         test-integration test-security test-e2e lint fmt contracts docs docs-check \
         test-site logs ps clean
 
@@ -50,6 +50,9 @@ clean: ## Stop all services AND delete volumes
 
 seed: ## Populate an empty environment (refuses if not empty)
 	$(SEED) seed
+
+credentials: ## Establish portal sign-in credentials (run after seed and after reset)
+	$(SEED) credentials
 
 verify: ## Recompute the fingerprint and run all integrity checks
 	$(SEED) verify

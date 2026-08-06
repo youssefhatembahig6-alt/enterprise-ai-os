@@ -75,3 +75,66 @@ def scoped_to(app_session: Session):  # type: ignore[no-untyped-def]
             return list(session.execute(text(sql), params).all())
 
     return _run
+
+
+class StatementRecorder:
+    """Every SQL statement executed while it is active.
+
+    The mechanism behind FR-036 and SC-007: "authorization precedes retrieval" is a
+    claim about *what ran*, and the specification says so outright — "a check that only
+    inspects the response cannot establish this". A denied request and a request for a
+    record that happens to be empty produce the same 403 and the same body; only the
+    statement log tells them apart.
+
+    Recording is at the driver level (`before_cursor_execute`), so it sees what was
+    actually sent to PostgreSQL rather than what the ORM was asked for. A query built
+    and never executed does not appear, which is correct — an unexecuted query read
+    nothing.
+    """
+
+    def __init__(self) -> None:
+        self.statements: list[str] = []
+
+    def touched(self, needle: str) -> list[str]:
+        """Statements mentioning ``needle``, case-insensitively."""
+        lowered = needle.lower()
+        return [s for s in self.statements if lowered in s.lower()]
+
+    def __contains__(self, needle: str) -> bool:
+        return bool(self.touched(needle))
+
+    def __len__(self) -> int:
+        return len(self.statements)
+
+
+@pytest.fixture
+def recorded_sql() -> Iterator[StatementRecorder]:
+    """Record every statement the application engine executes during a test.
+
+    Attached to the engine the API dependency actually uses — `get_engine()` — rather
+    than to a fresh one, because a recorder listening to a connection nobody uses
+    records nothing and every "the forbidden query did not run" assertion passes.
+    `TestTheRecorderWorks` below is the guard against exactly that.
+    """
+    from sqlalchemy import event
+
+    from eaios_api.auth.dependencies import get_engine
+
+    recorder = StatementRecorder()
+    engine = get_engine()
+
+    def _capture(
+        conn: object,
+        cursor: object,
+        statement: str,
+        parameters: object,
+        context: object,
+        executemany: bool,
+    ) -> None:
+        recorder.statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", _capture)
+    try:
+        yield recorder
+    finally:
+        event.remove(engine, "before_cursor_execute", _capture)

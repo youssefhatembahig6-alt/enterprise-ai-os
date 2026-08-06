@@ -67,9 +67,27 @@ REFUSAL_STATUSES = frozenset({401, 403, 404, 405})
 _SERVED_PREFIXES = ("/public/", "/health/", "/dataset/", "/docs", "/redoc", "/openapi.json")
 
 
-def is_auditable_refusal(path: str, status: int) -> bool:
-    """True when this response refused access to something non-public."""
+def is_auditable_refusal(path: str, status: int, *, authenticated: bool = False) -> bool:
+    """True when this response refused access to something non-public.
+
+    ``authenticated`` was added by feature 003 and closes a mismatch this middleware
+    could not have anticipated. It was written when nothing in the system was
+    authenticated, so it treats *every* non-public refusal as an anonymous probe: actor
+    ``SYSTEM``, action ``public.refused``, attributed to the public tenant.
+
+    Once authenticated requests can be refused, that becomes wrong twice over. The
+    authorization layer already writes the refusal with the real actor, the real tenant,
+    and the rule that fired — so the entry here is a duplicate, and a duplicate that
+    says the caller was anonymous and belonged to NileTech when they were a signed-in
+    Delta Retail employee.
+
+    A caller who presented *any* credential is therefore left to the authorization
+    layer, including one whose credential was rejected: a 401 for a forged token is
+    recorded by the sign-in and session paths, which know why.
+    """
     if status not in REFUSAL_STATUSES:
+        return False
+    if authenticated:
         return False
     return not any(path.startswith(prefix) for prefix in _SERVED_PREFIXES)
 
@@ -86,7 +104,16 @@ async def audit_refusals(
     """
     response = await call_next(request)
 
-    if not is_auditable_refusal(request.url.path, response.status_code):
+    # Imported here rather than at module scope: `auth.dependencies` imports the audit
+    # writer, which imports this module's neighbours, and a top-level import would close
+    # the cycle.
+    from ..auth.dependencies import read_credential
+
+    if not is_auditable_refusal(
+        request.url.path,
+        response.status_code,
+        authenticated=read_credential(request) is not None,
+    ):
         return response
 
     # FR-047b. The refusal above has already happened and is returned either way —

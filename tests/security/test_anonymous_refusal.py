@@ -79,6 +79,32 @@ def client() -> httpx.Client:
         yield session
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _reset_the_refusal_audit_bound() -> None:
+    """Clear this address's refusal-audit counter before the module runs.
+
+    FR-047b bounds individually-audited refusals at 60 per address per hour, and this
+    module makes roughly thirty on every run. Two runs inside one hour therefore cross
+    the bound, coalescing starts, and `test_a_refusal_writes_an_audit_entry` fails —
+    reporting a defect in the audit writer when what actually happened is that the
+    bound did its job.
+
+    The suite is meant to be runnable repeatedly, so the counter is reset rather than
+    the bound being raised. Scoped to this one bucket: the bound itself is still
+    exercised by `TestTheRefusalAuditIsBounded` further down, which drives it
+    deliberately.
+    """
+    from eaios_core.clients.stores import get_redis
+    from eaios_core.keys import RATE_LIMIT_PREFIX
+
+    try:
+        redis = get_redis()
+        for key in redis.scan_iter(match=f"{RATE_LIMIT_PREFIX}:refusal-audit:*"):
+            redis.delete(key)
+    except Exception:  # pragma: no cover - environment guard
+        pass  # the module's own tests skip if the stack is down
+
+
 class TestTheSetsAreReal:
     """Guards every assertion below from passing on an empty population."""
 

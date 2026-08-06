@@ -104,6 +104,46 @@ def seed_cli():  # type: ignore[no-untyped-def]
     return run_seed_cli
 
 
+@pytest.fixture(scope="module")
+def client():  # type: ignore[no-untyped-def]
+    """The API, in-process, with its real middleware and exception handlers.
+
+    Defined here rather than in a helper module the tests import, because importing a
+    fixture and then naming it as a parameter is a redefinition — ruff's F811 flags it
+    on every test in every file that does it, which is forty-odd warnings saying
+    nothing. A conftest fixture is found by name with no import at all.
+
+    In-process rather than over HTTP to the container: these suites check *decisions*,
+    and the same ASGI app gives identical middleware, handlers, and routing without a
+    rebuild between every change. The deployed path is covered by Playwright.
+    """
+    from fastapi.testclient import TestClient
+
+    from eaios_api.main import create_app
+
+    from .security.auth_helpers import credentials_are_provisioned
+
+    if not credentials_are_provisioned():
+        # Provision rather than skip, because "no credentials" is the *normal* state
+        # partway through a suite run: `test_migrations`, `test_seed_refusal`, and
+        # `test_runtime_table_integration` all reset the environment, and reset
+        # truncates `user_credentials` with every other runtime table. All three sort
+        # before `test_session_expiry`, so a full integration pass used to skip every
+        # authentication test and still report success.
+        #
+        # Skipping was the wrong shape of answer to a recoverable condition. The
+        # recovery is one documented command and it is what a developer would run.
+        result = run_seed_cli("credentials")
+        if result.returncode != 0 or not credentials_are_provisioned():
+            pytest.skip(
+                "could not provision credentials; run `make up && make seed`"
+                f" (exit {result.returncode})"
+            )
+
+    with TestClient(create_app(), raise_server_exceptions=False) as session:
+        yield session
+
+
 #: Used only when the environment is empty and the suite has to choose for itself.
 #: `smoke` because provisioning from nothing should be fast; a developer who wants
 #: the full dataset seeds it themselves and the suite then follows.
