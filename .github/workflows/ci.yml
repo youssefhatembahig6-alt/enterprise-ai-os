@@ -206,6 +206,20 @@ jobs:
           uv run python -m pytest tests/e2e -m e2e -v \
             --ignore=tests/e2e/test_clean_startup.py
 
+      # The step above resets the dataset, and `reset` truncates `user_credentials`
+      # along with everything else. `test_credentials_lifecycle.py` restores them on
+      # its way out, but `test_determinism.py` sorts after it and resets twice more
+      # without re-provisioning — so the step ends with a complete dataset and nobody
+      # who can sign in, and every browser sign-in below answered 401.
+      #
+      # Re-provisioning here rather than reordering the suite: those resets are the
+      # behaviour those tests exist to verify, and a fix that depended on pytest's
+      # file order would break the next time a file is added or renamed.
+      - name: Re-provision credentials after the destructive lifecycle tests
+        run: |
+          docker compose -f infrastructure/docker-compose.yml --env-file .env \
+            run --rm --no-deps -T seed credentials
+
       - name: Public content carries nothing sensitive
         run: uv run python -m pytest tests/security/test_public_content.py -m security -v
 
