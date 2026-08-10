@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 import { PORTAL_PAGES } from "../lib/pages";
+import { PASSWORD, employee, manager } from "./personas";
 
 /**
  * WCAG 2.2 AA and keyboard access for the authenticated portal (spec 003 SC-010).
@@ -23,9 +24,10 @@ import { PORTAL_PAGES } from "../lib/pages";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-const EMPLOYEE = "majid.alzaabi@niletech.example";
-const MANAGER = "tarek.darwish@niletech.example";
-const PASSWORD = "eaios-demo-local-only";
+// Resolved from the running dataset — which person holds a persona depends on the
+// seeded profile, so the addresses cannot be literals (see e2e/personas.ts).
+const EMPLOYEE = employee();
+const MANAGER = manager();
 
 async function signIn(page: Page, email: string): Promise<void> {
   await page.goto("/portal");

@@ -17,6 +17,10 @@ const baseURL = process.env.SITE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Resolves the seeded personas from the running dataset. The portal specs sign in as
+  // real seeded users, and which person holds a persona depends on the profile, so the
+  // addresses cannot be literals (see e2e/personas.ts).
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

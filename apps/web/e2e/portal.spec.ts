@@ -15,15 +15,17 @@ import { expect, test, type Page } from "@playwright/test";
  * security actually lives.
  */
 
-const PASSWORD = "eaios-demo-local-only";
+import { PASSWORD, delta, employee, manager } from "./personas";
 
 /**
- * Seeded personas (spec 001 FR-025b). Addresses follow the generator's deterministic
- * rule, so they are stable across every reseed of the committed dataset.
+ * Seeded personas (spec 001 FR-025b), resolved from the running dataset by
+ * `global-setup.ts`. They were literal addresses until CI first ran this suite: those
+ * are the people the *full* profile generates, CI seeds `smoke`, and every sign-in was
+ * correctly refused. `persona_key` is stable across profiles; the address is not.
  */
-const EMPLOYEE = "majid.alzaabi@niletech.example";
-const MANAGER = "tarek.darwish@niletech.example";
-const DELTA = "dina.shafik@deltaretail.example";
+const EMPLOYEE = employee();
+const MANAGER = manager();
+const DELTA = delta();
 
 /**
  * The sign-in form's own status region.
