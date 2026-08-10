@@ -79,24 +79,46 @@ jobs:
           pattern: fingerprint-*
           merge-multiple: true
 
+      # Windows Python writes `\r\n`, so comparing raw bytes reported two identical
+      # digests as divergent (2026-08-10). Each artifact must hold exactly one line;
+      # only a trailing CR is stripped, and what remains must be the digest itself —
+      # so empty, truncated, split, or multi-line artifacts fail instead of comparing
+      # equal to each other.
       - name: Fingerprints must be identical across platforms
         shell: bash
         run: |
           set -euo pipefail
-          ls -1 fingerprint-*.txt
-          count=$(ls -1 fingerprint-*.txt | wc -l)
-          if [ "$count" -lt 2 ]; then
-            echo "::error::expected at least two platform fingerprints, found $count"
+
+          shopt -s nullglob
+          files=(fingerprint-*.txt)
+          if [ "${#files[@]}" -lt 2 ]; then
+            echo "::error::expected at least two platform fingerprints, found ${#files[@]}"
             exit 1
           fi
+
           echo "--- reported ---"
-          for f in fingerprint-*.txt; do printf '%s  %s\n' "$(cat "$f")" "$f"; done
-          unique=$(cat fingerprint-*.txt | sort -u | wc -l)
+          digests=()
+          for f in "${files[@]}"; do
+            mapfile -t lines < "$f"
+            if [ "${#lines[@]}" -ne 1 ]; then
+              echo "::error::$f must hold exactly one line, found ${#lines[@]}"
+              exit 1
+            fi
+            value="${lines[0]%$'\r'}"
+            printf '%s  %s\n' "${value:-<empty>}" "$f"
+            if [[ ! "$value" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::$f is not a 64-character lowercase SHA-256 digest"
+              exit 1
+            fi
+            digests+=("$value")
+          done
+
+          unique=$(printf '%s\n' "${digests[@]}" | sort -u | wc -l)
           if [ "$unique" -ne 1 ]; then
             echo "::error::platform fingerprints diverge — generation is not deterministic across OSes (SC-002)"
             exit 1
           fi
-          echo "All platforms agree: $(head -1 fingerprint-ubuntu-latest.txt)"
+          echo "All platforms agree: ${digests[0]}"
 
   # ---------------------------------------------------------------------------
   # Full stack: migrations, seed, isolation, coherence, determinism.

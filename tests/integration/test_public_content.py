@@ -89,7 +89,20 @@ class TestInternalCatalogueIsUnreachable:
         # internally. So a no-overlap assertion would fail a correct implementation.
         # What must never appear is an item *exclusive* to the internal catalogue.
         internal_only = internal - public
-        assert internal_only, "the two catalogues are identical; this check proves nothing"
+        # Was `assert internal_only`, which demanded an internal-only name exist. True
+        # at full, false at smoke: `volumes.products` floors at 4, so smoke takes
+        # `_CATALOG[NILETECH]`'s first four rows — two names, both public — leaving
+        # `internal` a strict subset. The equality above never needed the internal
+        # catalogue to be larger, only for the two tables to be *distinguishable*:
+        # read the wrong table and `served` becomes `internal`, which differs from
+        # `public` in both profiles (smoke 2 names vs 4, full 8 vs 4), so the equality
+        # fails. Leak an internal row and `served` gains a name `public` lacks, so it
+        # fails too — and when that row is internal-exclusive, the next assertion
+        # names it.
+        assert internal != public, (
+            "the two catalogues carry identical names; nothing here could tell "
+            "which table the endpoint read"
+        )
         assert not (served & internal_only), (
             f"the public endpoint served internal-only catalogue items: "
             f"{sorted(served & internal_only)}"
@@ -342,7 +355,9 @@ class TestUnresolvableLeadershipProfiles:
 
         repoint(other_tenant_user, original)
         try:
-            yield subject, len(before)
+            # The listing, not its length: the survivors are named below, and a
+            # count cannot say *which* record disappeared.
+            yield subject, before
         finally:
             repoint(original, other_tenant_user)
 
@@ -354,11 +369,20 @@ class TestUnresolvableLeadershipProfiles:
     def test_the_other_profiles_still_render(
         self, client: httpx.Client, unlinked_profile
     ) -> None:
-        """FR-030 — one broken record must not remove the page."""
-        _, before = unlinked_profile
-        served = client.get("/public/leadership").json()
-        assert len(served) == before - 1
-        assert served, "the whole page emptied because one profile was unresolvable"
+        """FR-030 — one broken record must not remove the page.
+
+        `assert served` needed a survivor, so it encoded the full profile: NileTech
+        carries six leadership profiles there and one at smoke, where unlinking the
+        only profile empties the page and should. The set difference is the
+        requirement itself and holds at either size. It fails if the unresolvable
+        profile is still served (not omitted), if a resolvable one vanished alongside
+        it, and if the page emptied while others should have remained.
+        """
+        subject, before = unlinked_profile
+        served_names = {item["full_name"] for item in client.get("/public/leadership").json()}
+        before_names = {item["full_name"] for item in before}
+
+        assert served_names == before_names - {subject["full_name"]}
 
     def test_the_omission_is_recorded(
         self, client: httpx.Client, engine: Engine, unlinked_profile
@@ -415,5 +439,35 @@ class TestUnresolvableLeadershipProfiles:
                     )
                 ).scalar_one()
             )
+            # The fixture repoints at a *Delta Retail* employee, so a leaked repoint
+            # leaves the foreign key resolving and `orphaned` at zero. This is the
+            # query that sees it; nothing looked for it before.
+            misattributed = int(
+                conn.execute(
+                    text(
+                        "SELECT count(*) FROM leadership_profiles lp"
+                        " JOIN users u ON u.id = lp.user_id"
+                        " WHERE u.company_id <> lp.company_id"
+                    )
+                ).scalar_one()
+            )
+            # Was `== 6`, NileTech's executive count at the full profile; smoke has
+            # one, so a correctly restored dataset failed. Read from the database, as
+            # `test_all_leadership_profiles_are_served` already does.
+            expected = int(
+                conn.execute(
+                    text(
+                        "SELECT count(*) FROM leadership_profiles lp"
+                        " JOIN users u ON u.id = lp.user_id"
+                        " JOIN companies c ON c.id = lp.company_id"
+                        " WHERE c.slug = 'niletech'"
+                    )
+                ).scalar_one()
+            )
         assert orphaned == 0
-        assert len(client.get("/public/leadership").json()) == 6
+        assert misattributed == 0, (
+            f"{misattributed} leadership profile(s) still point at another tenant's "
+            f"employee; a repoint leaked out of its fixture"
+        )
+        assert expected, "no leadership profiles resolve at all; the restore lost them"
+        assert len(client.get("/public/leadership").json()) == expected
