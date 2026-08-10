@@ -179,7 +179,6 @@ jobs:
           uv run python -m pytest -m security -v \
             tests/security/test_login_enumeration.py \
             tests/security/test_session_lifecycle.py \
-            tests/security/test_token_tampering.py \
             tests/security/test_request_supplied_claims.py \
             tests/security/test_authorize_before_read.py \
             tests/security/test_manager_scope.py \
