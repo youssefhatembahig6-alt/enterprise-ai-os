@@ -17,7 +17,7 @@ export function SiteHeader() {
           <Link href="/" className="eaios-brand">
             NileTech Solutions
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div className="eaios-header__actions">
             <Navigation />
             <Link
               href="/portal"

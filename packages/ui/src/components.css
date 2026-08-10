@@ -55,6 +55,26 @@
   justify-content: space-between;
   gap: var(--space-4);
   min-height: 64px;
+  /* The brand and the actions group both have intrinsic widths, and together they
+     exceeded the viewport at the narrow end: the document could not lay out below
+     ~300px on this machine's fonts and wider elsewhere, so FR-032's no-horizontal-
+     scroll rule failed on the Linux runner while passing on Windows. Wrapping to a
+     second row is what makes the header genuinely responsive rather than merely
+     wide enough on one font stack. */
+  flex-wrap: wrap;
+}
+
+/* Was an inline style on the element. Named so the wrapping and shrink behaviour
+   below is expressible at all — inline styles carry no media queries and no
+   `flex-wrap`, which is why the group could not adapt. */
+.eaios-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  /* Without this a flex item refuses to shrink below its content, which is what
+     propagated the group's intrinsic width up to the document. */
+  min-width: 0;
 }
 
 .eaios-brand {
@@ -63,6 +83,9 @@
   color: var(--ink);
   text-decoration: none;
   letter-spacing: -0.01em;
+  /* Two words, so it can take two lines rather than setting a floor of its own. */
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .eaios-brand:hover {
@@ -128,7 +151,10 @@
     display: none;
     position: absolute;
     inset-inline: 0;
-    top: 64px;
+    /* Relative to `.eaios-header__inner`, not a copy of `min-height: 64px`. Once the
+       bar can wrap, the header is taller than 64px at narrow widths and a fixed
+       offset dropped the open menu on top of the controls it belongs under. */
+    top: 100%;
     z-index: 20;
     flex-direction: column;
     align-items: stretch;
