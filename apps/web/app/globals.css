@@ -11,8 +11,13 @@
 }
 
 html {
-  /* No horizontal page scroll at any width from 320px upward (FR-032). */
-  min-width: 320px;
+  /* No horizontal page scroll at any width from 320px upward (FR-032).
+     `min()` and not a bare 320px: a bare floor is wider than the viewport whenever a
+     classic vertical scrollbar takes ~15px, so at a 320px device the page became
+     320px wide inside a 305px viewport — the declaration meant to prevent horizontal
+     scroll was producing it. `100%` resolves against the viewport *excluding* the
+     scrollbar, which `100vw` does not, so `100vw` would reintroduce the same gap. */
+  min-width: min(320px, 100%);
   -webkit-text-size-adjust: 100%;
 }
 
