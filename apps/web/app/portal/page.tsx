@@ -6,7 +6,7 @@ import { SessionExpiredState } from "@eaios/ui";
 
 import { SignInForm } from "../../components/portal/SignInForm";
 import { NOT_INDEXED } from "../../lib/metadata";
-import { getCurrentUser, SessionExpiredError } from "../../lib/portal-api";
+import { getCurrentUser, SessionExpiredError, UnauthenticatedError } from "../../lib/portal-api";
 import { sessionToken } from "../../lib/session";
 
 /**
@@ -42,13 +42,19 @@ export default async function PortalSignInPage() {
       await getCurrentUser();
       redirect("/portal/home");
     } catch (error) {
+      if (isRedirect(error)) throw error;
       if (error instanceof SessionExpiredError) {
         expired = true;
-      } else if (isRedirect(error)) {
+      } else if (!(error instanceof UnauthenticatedError)) {
+        // Rethrown for `error.tsx` to render. Falling through to the form meant an
+        // outage looked exactly like a signed-out visitor: the person saw a sign-in
+        // page, signed in, and failed again with no explanation. That is *error*
+        // dressed as *unauthenticated*, the pair contracts/portal-routes.md §3 keeps
+        // apart, and the shell was fixed for the same reason.
         throw error;
       }
-      // Any other failure falls through to the form. Someone who cannot sign in
-      // because a dependency is down should still see the way in, not a stack trace.
+      // `UnauthenticatedError` is not a failure here: it means there is no usable
+      // credential, and the form below is exactly the right answer.
     }
   }
 

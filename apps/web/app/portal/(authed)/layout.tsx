@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 
 import { SignOutButton } from "../../../components/portal/SignOutButton";
 import { PortalNav } from "../../../components/portal/PortalNav";
-import { getCurrentUser } from "../../../lib/portal-api";
+import {
+  getCurrentUser,
+  SessionExpiredError,
+  UnauthenticatedError,
+} from "../../../lib/portal-api";
 
 /**
  * The authenticated shell (spec 003 FR-027, FR-028).
@@ -32,8 +36,17 @@ export default async function AuthenticatedPortalLayout({
   let user;
   try {
     user = await getCurrentUser();
-  } catch {
-    redirect("/portal");
+  } catch (error) {
+    // Only the two identity outcomes redirect. A bare `catch` sent a dependency
+    // failure to the sign-in form too, which told a signed-in person during an outage
+    // that they were signed out — collapsing *error* into *unauthenticated*, the exact
+    // pair contracts/portal-routes.md §3 says must stay distinct. Anything else is
+    // rethrown and met by `app/portal/error.tsx`, which is the parent segment because
+    // a boundary cannot catch the layout it sits beside.
+    if (error instanceof UnauthenticatedError || error instanceof SessionExpiredError) {
+      redirect("/portal");
+    }
+    throw error;
   }
 
   return (

@@ -56,5 +56,27 @@ export const PORTAL_PAGES = [
   "/portal/denied",
 ] as const;
 
+/**
+ * Portal routes whose address contains a parameter (spec 003 US2).
+ *
+ * Kept apart from `PORTAL_PAGES` rather than added to it, because the sweeps that read
+ * that list navigate to each entry: a browser sent to the literal `/portal/team/[userId]`
+ * would get a 404 and the sweep would report it as a portal page failing. Every consumer
+ * of `PORTAL_PAGES` therefore keeps working unchanged.
+ *
+ * `href` builds a real address from an identifier the caller supplies, so a test drives
+ * the route the way the application does — through the same function the team list
+ * would use — instead of assembling the path itself and drifting from it.
+ */
+export const PORTAL_DYNAMIC_ROUTES = [
+  {
+    /** Stable identifier, so a suite can bind to the route rather than to its shape. */
+    id: "team-member",
+    pattern: "/portal/team/[userId]",
+    href: (userId: string) => `/portal/team/${encodeURIComponent(userId)}`,
+  },
+] as const;
+
 export type PublicPage = (typeof PUBLIC_PAGES)[number];
 export type PortalPage = (typeof PORTAL_PAGES)[number];
+export type PortalDynamicRoute = (typeof PORTAL_DYNAMIC_ROUTES)[number];

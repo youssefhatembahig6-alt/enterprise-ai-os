@@ -61,8 +61,15 @@ export default async function TeamMemberPage({ params }: Props) {
         </div>
       );
     }
+    // The retry was missing here while the other two portal error states had one, so a
+    // failure on this page was a dead end. `retry` rather than a link in the children:
+    // contracts/portal-routes.md §3 names the prop, and it had gone unused since
+    // feature 002.
     return (
-      <ErrorState title="This profile could not be loaded">
+      <ErrorState
+        title="This profile could not be loaded"
+        retry={<Link href={`/portal/team/${encodeURIComponent(userId)}`}>Try again</Link>}
+      >
         <p>Something went wrong on our side. Please try again in a moment.</p>
       </ErrorState>
     );
