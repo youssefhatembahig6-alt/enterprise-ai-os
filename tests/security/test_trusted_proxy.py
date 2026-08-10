@@ -143,10 +143,17 @@ class TestTheIdentityIsStillADigest:
 
 
 class TestTheConfigurationDefaultsToTrustingNothing:
-    def test_no_proxy_is_trusted_out_of_the_box(self) -> None:
+    def test_no_proxy_is_trusted_out_of_the_box(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from eaios_core.settings import Settings
 
-        assert Settings().trusted_proxy_hosts == frozenset(), (
+        # The claim is about the *code* default, so both sources of ambient
+        # configuration have to go. `Settings` reads `.env` by default, and CI creates
+        # that file from `.env.example`, which sets TRUSTED_PROXIES=web deliberately —
+        # so this measured the deployment's configuration and failed on a correct
+        # default. It passed locally only where no such line existed.
+        monkeypatch.delenv("TRUSTED_PROXIES", raising=False)
+
+        assert Settings(_env_file=None).trusted_proxy_hosts == frozenset(), (
             "a default that trusted something would mean any deployment which forgot to"
             " configure this had a header-forgery bypass rather than a missing feature"
         )
