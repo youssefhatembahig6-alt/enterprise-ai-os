@@ -217,11 +217,12 @@ tests/
 ├── security/      test_session_lifecycle.py · test_manager_scope.py ·
 │                  test_authorize_before_read.py · test_cross_tenant_authenticated.py ·
 │                  test_request_supplied_claims.py · test_login_enumeration.py ·
-│                  test_authz_audit.py · test_token_tampering.py ·
+│                  test_authz_audit.py ·
 │                  test_credential_never_logged.py · test_password_hash_column_unused.py
 └── e2e/           test_credentials_lifecycle.py
 
-apps/web/tests/     portal-states.test.tsx · SignInForm.test.tsx · PortalNav.test.tsx
+apps/web/tests/     portal-states.test.tsx · state-coverage.test.tsx ·
+                    SignInForm.test.tsx · PortalNav.test.tsx
 apps/web/e2e/       portal.spec.ts  (+ existing accessibility / keyboard / responsive
                                      sweeps pick up the new routes via lib/pages.ts)
 ```
@@ -428,7 +429,7 @@ defense but proves nothing the API has not already proven.
 | FR-001, FR-006 | `integration/test_auth_login.py` | Asserts a *known seeded* user signs in, not a fixture |
 | FR-002, FR-018 | `security/test_credential_never_logged.py` | Asserts the hash and password appear in no serialiser, log record, or audit row; a control asserts the log capture itself works |
 | FR-002a, SC-014 | `e2e/test_credentials_lifecycle.py` | Fingerprint before/after equality, then reset → re-provision → sign-in |
-| FR-003, FR-019 | `security/test_token_tampering.py` | One property mutated per case; a control asserts the unmutated token is accepted |
+| FR-003, FR-019 | `unit/test_tokens.py` | One property mutated per case; a control asserts the unmutated token is accepted |
 | FR-004 | `integration/test_access_context.py` | Deactivate mid-session, assert the *next* request fails; a control asserts it succeeded before |
 | FR-005, SC-002 | `integration/test_session_expiry.py` | Timestamps written, not slept; both `ended_reason` values asserted |
 | FR-007, SC-002a | `security/test_session_lifecycle.py` | Replays the exact token after sign-out |
@@ -444,7 +445,7 @@ defense but proves nothing the API has not already proven.
 | FR-024, FR-033, SC-003 | `security/test_manager_scope.py` | Direct-report and unrelated-employee sets both asserted non-empty first |
 | FR-025 | `security/test_authorize_before_read.py` | Manager denied; `hr:read_all` allowed, in the same test |
 | FR-026 | `security/test_manager_scope.py` | Reachable set recomputed from `users.manager_id`, not hard-coded |
-| FR-027, FR-029, SC-009 | `apps/web/tests/portal-states.test.tsx` | Every surface × every state, driven by the `lib/pages.ts` inventory |
+| FR-027, FR-029, SC-009 | `apps/web/tests/portal-states.test.tsx` | Every *reachable* state per surface; shared boundaries tested once and proven to cover their child routes; unreachable cells classified with reasons. Bound to `PORTAL_PAGES` and `PORTAL_DYNAMIC_ROUTES` |
 | FR-028, SC-008 | `apps/web/tests/PortalNav.test.tsx`, `e2e/portal.spec.ts` | Permitted user sees the entry, asserted in the same test as the hidden case; hidden address requested directly |
 | FR-031, FR-032, SC-011 | Existing feature 001 + 002 suites, unchanged | Any edit to those files is itself the failure signal |
 | SC-001 | `e2e/portal.spec.ts` | Interaction count from arrival to profile |

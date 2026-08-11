@@ -17,7 +17,7 @@ Re-run in full after the post-review defect fixes (2026-08-06, second pass):
 | Suite | Result |
 |-------|--------|
 | `tests/` entire Python suite, one process | **1432 passed, 0 skipped** (19m12s, includes the destructive resets) |
-| `apps/web` components (Vitest) | **183 passed** |
+| `apps/web` components (Vitest) | **225 passed, 9 files** (includes `portal-states.test.tsx`, 42) |
 | Playwright, 3 viewports | **356 passed, 4 skipped** |
 | `ruff` | clean |
 | `mypy` (104 source files) | clean |
@@ -30,8 +30,8 @@ tears the stack down and is now its own CI job for that reason. **Zero skipped**
 number to read: a skip in these suites means an absent dependency, and a suite that skips
 itself reports the same green as one that passed.
 
-None of this is the CI evidence FR-037 and SC-012 require. It is the same machine, one
-platform, run by hand. See *Open risks*.
+These are local figures. The CI evidence FR-037 and SC-012 require is recorded in
+*Continuous integration* below, and it is now the authoritative record.
 
 ---
 
@@ -178,17 +178,21 @@ from the live schema (28 KB → 50 KB) and committed.
 | D1–D5 | As recorded in [plan.md](plan.md) | unchanged |
 | D6 | Password primitives live in `eaios_core`, not `apps/api` | The seed's `credentials` command must hash, and `scripts/seed` may not import from `apps/api` (spec 001 FR-001a) |
 | D7 | `e2e/boundary.spec.ts` changed | It asserted `/portal` carried no input. FR-006 puts the sign-in form there. Its FR-048 check was replaced with the one the requirement is actually about — the eight content pages — which had never existed |
-| D8 | T111–T112 written but unrunnable | The CI steps are in `ci.yml`; the repository was removed at the user's request, so nothing triggers them. See the open risk below |
+| D8 | T111–T112 unrunnable *(resolved)* | *Historical, superseded.* The CI steps were in `ci.yml` with no repository to trigger them. Both are closed against run 31443872819; a third step, `Re-provision credentials after the destructive lifecycle tests`, proved necessary once the browser suite finally ran |
+| D9 | FR-029's states are classified, not a cross-product | Nine of the 35 route/state cells cannot exist — the denied page reads nothing, `/me` cannot be forbidden, a profile is never empty. `contracts/portal-routes.md` §3 now states the enforced rule: every reachable route-specific state tested, shared boundaries tested once and proven to cover their children, unreachable cells classified with reasons. Nothing is narrowed; the classification is what makes a gap visible |
 
 ---
 
 ## Corrections made after review
 
-**T111 and T112 were wrongly marked complete.** They add CI steps; the YAML is correct
-and nothing can trigger it. Marking them done on the grounds that the file was right is
-precisely the reasoning Principle VIII rejects — a check that has never run is not a
-check. Both are open again, and **FR-037, SC-012, and spec 001 FR-047c remain unmet**
-until a CI run is green.
+**T111 and T112 were wrongly marked complete** *(recorded 2026-08-06; since resolved).*
+They add CI steps; at the time the YAML was correct and nothing could trigger it. Marking
+them done on the grounds that the file was right is precisely the reasoning Principle VIII
+rejects — a check that has never run is not a check. They were reopened, and are now
+closed against run 31443872819: **FR-037, SC-012, and spec 001 FR-047c are met**. The
+judgement was vindicated rather than merely overtaken — when the step finally ran it
+aborted before collection on a path that never existed, so the YAML had never been
+correct.
 
 **FR-007a's bound now fails closed.** The limiter previously failed open when Redis was
 unreachable, recorded as a "residual risk". FR-007a says attempts **MUST** be bounded
@@ -230,31 +234,75 @@ green. Clean startup is now its own job with its own stack, and CI sets `EAIOS_N
 construction, so a skip there is an unchecked requirement. The control is falsified both
 ways: without the flag the probe skips, with it the same skips fail.
 
+## Continuous integration
+
+**Authoritative evidence.** Run **31443872819**, commit `429fdcba8b22d10e356874f0fff1995a83a36145`,
+API conclusion **`success`** — 7/7 jobs green, **86 successful steps, 3 skips, 0 failures,
+0 cancellations**. All three skips are the `Dump logs on failure` step in the jobs that had
+no failure to dump.
+
+| Job | Result | What it establishes |
+|-----|--------|---------------------|
+| `unit (ubuntu-latest)` / `unit (windows-latest)` | green | `ruff`, `mypy`, unit suite, and the platform fingerprint, on both OSes |
+| `cross-platform determinism` | green | Ubuntu and Windows agree: `6d0b5c64b3fd8e06c3158213b62e65f7e2d88491a8110cfe7187ed551e151fbf`. **SC-002 holds** |
+| `web` | green | `pnpm lint`, `typecheck`, `test` (225), `build` |
+| `clean startup (SC-001)` | green | one command from a torn-down state |
+| `full profile (FR-020b, SC-005)` | green | full seed, volumes, hierarchy, committed full-profile fingerprint |
+| `integration + security + e2e` | green | 23/23 steps — see below |
+
+Inside the long job, every gate this feature depends on ran on a runner:
+
+* **`Authentication and authorization (FR-037, Principle VIII)` — 128 passed.** The step
+  also **gates the job**, proven rather than asserted: in run 31426053623 it exited 4 and
+  the job failed; in 31427580344 it passed and the job advanced. FR-037 and SC-012 are met.
+* **`Tenant isolation` — 579 passed.** Unauthorized information leakage measures zero.
+* **`Integrity, coherence, and provenance` — 456 passed, 3 skipped** (the profile-guarded
+  SC-005 cases, which pass in the `full profile` job).
+* **`Determinism and lifecycle` — 24 passed**, followed by the re-provisioning step the
+  destructive resets made necessary.
+* **`Public website end-to-end, accessibility, and metadata` — 356 passed, 4 skipped**
+  across three viewports, including the portal sign-in, role-aware navigation, and
+  cross-tenant isolation specs.
+* **`Fingerprint matches the committed known-good value` — green.** This step had been
+  skipped in every previous run; it has now executed and the dataset matches
+  `abc407d70e90672cf5696aaa6e020e4c5112ecef78c7d970d7626c75912147ba`.
+
+**Portal states.** `apps/web/tests/portal-states.test.tsx` — 42 tests — classifies all 35
+route/state cells and fails if any is unclassified. Writing it exposed five defects, all
+fixed: no loading boundary existed; the `(authed)` shell and `/portal` both collapsed
+*error* into *unauthenticated*; the error boundary had to move to the parent segment to
+catch the shell at all; and `/portal/team/[userId]` had no retry control.
+
+**What the first runs found.** The prediction in spec 001's T170 held: the first runs
+failed, and everything they found was invisible locally — a CRLF defect in the fingerprint
+comparison (which had made SC-002 *look* false), three smoke-profile assumptions in
+`test_public_content.py`, a stale test path that aborted the FR-037 step before
+collection, an ambient-config leak in the trusted-proxy test, hardcoded full-profile
+personas in the browser suite, credentials destroyed by the destructive lifecycle suite,
+and a header wider than a 320px viewport.
+
+---
+
 ## Open risks
 
-**CI has still never run.** Git history is restored — `Desktop\eaios-history.bundle` was
-cloned to `Grad_Project-restored`, which now carries this work — but the GitHub remote was
-deleted, so nothing can be pushed and no workflow can be triggered. FR-037's "must run in
-continuous integration and must block the change on failure" therefore remains unmet, as
-do spec 001's FR-047c and SC-012. **This is the single blocking item**: an empty remote is
-all that is needed, and the two CI defects found above show exactly why local evidence
-does not substitute — both were invisible on a developer machine and both would have
-produced a green run that had checked nothing.
-
-**Cross-platform determinism is failing and unverifiable locally.** The one CI run this
-project ever had showed Ubuntu and Windows producing different dataset fingerprints,
-which makes SC-002 false. It is a feature 001 defect, unrelated to this feature, and
-only the CI matrix can observe it.
+*Superseded and removed:* the entries that stood here claiming **CI has never run**, that
+**nothing can be pushed**, that **FR-037/SC-012/FR-047c remain unmet**, and that
+**cross-platform determinism is failing, making SC-002 false**. All four were true when
+written and are now false: run 31443872819 is green, and the fingerprints are identical.
+The determinism entry was wrong in substance as well as currency — generation always
+agreed across platforms; the comparison was reading a Windows `` as a different digest.
 
 **A per-account lockout is a bounded denial of service** against that account, the demo
 password is shared across all seeded users, and HS256 means the verifier can also mint.
-All three are stated in [plan.md](plan.md) and none is a defect. The fourth entry that
-stood here — "sign-in bounds fail open when Redis is unavailable" — was not a risk but an
-unmet MUST, and is fixed above; leaving it listed would have contradicted the correction
-recorded twenty lines earlier.
+All three are stated in [plan.md](plan.md) and none is a defect.
 
 **HS256 holds only while FastAPI alone verifies.** Feature 004's orchestrator must receive
 the immutable access context from FastAPI and must never receive the signing key. The day
 a second service verifies tokens, this becomes an asymmetric key pair —
 `AuthSettings.jwt_algorithm` is pinned as a list at every call site precisely so that
 change is one edit and not a hunt.
+
+**`eaios-seed --help` crashes** with `TypeError: Parameter.make_metavar() missing 1
+required positional argument: 'ctx'` — a typer/click version drift. Every command works;
+only `--help` is broken. Found while closing this feature, unrelated to it, and not yet
+filed against a feature.

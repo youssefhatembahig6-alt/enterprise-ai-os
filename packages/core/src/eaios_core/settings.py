@@ -104,7 +104,7 @@ class AuthSettings(BaseSettings):
 
     #: Pinned, and pinned as a list at every verification call site. An unpinned
     #: verifier accepts `alg: none` and accepts an RS256 public key presented as an
-    #: HMAC secret — both are in `tests/security/test_token_tampering.py`.
+    #: HMAC secret — both are in `tests/unit/test_tokens.py`.
     jwt_algorithm: Literal["HS256"] = "HS256"
 
     #: FR-005. Two bounds because they cover different risks: the idle timeout

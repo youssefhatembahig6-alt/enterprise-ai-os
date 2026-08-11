@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-31
 
-**Status**: Draft
+**Status**: Complete
+
+**Evidence**: CI run [31443872819](https://github.com/youssefhatembahig6-alt/enterprise-ai-os/actions/runs/31443872819) at commit `429fdcba8b22d10e356874f0fff1995a83a36145` — API conclusion `success`, 7/7 jobs green, 86 successful steps, 3 conditional log-dump skips, 0 failures. All 172 tasks and all five checklists are closed. FR-047/FR-047c and SC-012 are met by that run; SC-002's cross-platform fingerprints agree.
 
 **Input**: User description: "Build the foundation of the Enterprise AI Operating System according to docs/Enterprise_AI_OS_EDITED.html. Create a monorepo and a reproducible local development environment. Create two synthetic companies: NileTech Solutions (software and business automation, offices in Cairo, Alexandria and Dubai, ~200 generated employees, departments Engineering/HR/Sales/Finance/Legal/Customer Support/Operations/Executive Management) and Delta Retail Group (an independent second tenant with separate users, departments, data, files, documents, vectors, caches, jobs and audit logs, used for tenant-isolation security tests). Generate deterministic data for companies, departments, users, roles, managers and reporting relationships, employee profiles, leave balances and requests, attendance, training, performance reviews, customers, products, orders, invoices, sales targets, expenses, budgets, contracts, policies, vacancies, news, services, leadership profiles, and office information. The seed process must reproduce the same dataset from an empty environment."
 
@@ -41,7 +43,7 @@ authenticated portal and its policy engine — rather than ones that would re-li
 shipped work. **No requirement below is removed or narrowed.**
 
 - Q: When an authenticated caller requests a resource that exists but belongs to another tenant, what must the response be? → A: 404, always — indistinguishable from a resource that does not exist. The audit entry records the real reason, so the trail keeps the truth the response withholds.
-- Q: SC-012 requires the checks to "block the change", but the project is not under version control — what does "block" mean? → A: The repository is placed under version control and the gate is a pull request whose checks must pass. `ci.yml` already exists and has never been triggered by anything.
+- Q: SC-012 requires the checks to "block the change", but the project is not under version control — what does "block" mean? → A: The repository is placed under version control and the gate is a pull request whose checks must pass. `ci.yml` already exists and has never been triggered by anything. *(Historical — true when recorded on 2026-08-05, and superseded: the repository is under version control with a remote, and CI run 31443872819 concluded `success`. The decision itself stands.)*
 - Q: How must a verification check behave when its subject is empty — for example FR-045's vector-store leg under decision D2? → A: Report as **skipped**, naming the deferral that emptied it. A silent pass is indistinguishable from a real one.
 - Q: Should dependency direction between packages be a requirement, or a code-review convention? → A: A stated requirement, enforced by an automated import check, so a backwards dependency fails the build rather than depending on a reviewer noticing.
 - Q: How is the API versioned, given `packages/contracts` generates client types from it? → A: No version segment in the path. The published OpenAPI document and the generated types are the compatibility gate, and that gate already exists.

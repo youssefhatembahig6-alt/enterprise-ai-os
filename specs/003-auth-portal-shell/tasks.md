@@ -93,7 +93,7 @@ every story begins with signing in.
 
 - [X] T029 [P] Write **failing** `tests/unit/test_passwords.py`: the stored value is not the password, verification succeeds for the right one and fails for the wrong one, two hashes of the same password differ (per-hash salt)
 - [X] T030 [P] Write **failing** `tests/unit/test_tokens.py`: mint/verify round trip, and rejection of a token whose `iss`, `aud`, `typ`, or `exp` is wrong
-- [X] T031 [P] Write **failing** `tests/security/test_token_tampering.py`: forged signature, `alg: none`, algorithm confusion, wrong issuer, wrong audience, expired, wrong token type — each mutating exactly one property, with a control asserting the unmutated token is accepted
+- [X] T031 [P] Write **failing** token-tampering cases: forged signature, `alg: none`, algorithm confusion, wrong issuer, wrong audience, expired, wrong token type — each mutating exactly one property, with a control asserting the unmutated token is accepted. Written into `tests/unit/test_tokens.py` alongside T030 rather than a separate `tests/security/` file, because they exercise the same `verify_access_token` and the control belongs beside the round trip; `TestEachCheckCanRefuse` and `TestAlgorithmConfusion` are these cases
 - [X] T032 [P] Write **failing** `tests/security/test_login_enumeration.py`: responses identical across unknown email, wrong password, inactive user, no credential, and locked-out; the dummy-hash path asserted to execute when no user matches; both bounds asserted at their stated numbers
 - [X] T033 [P] Write **failing** `tests/security/test_session_lifecycle.py`: sign in, keep the exact token, sign out, replay that token, expect 401 (SC-002a)
 - [X] T034 [P] Write **failing** `tests/integration/test_session_expiry.py`: idle past 30 minutes gives `ended_reason='IDLE'`, continuous activity past 8 hours gives `'ABSOLUTE'` — advancing time by writing timestamps, never by sleeping
@@ -105,7 +105,7 @@ every story begins with signing in.
 - [X] T040 [P] Implement `apps/api/src/eaios_api/auth/schemas.py` — `LoginRequest`, `LoginAccepted`, `SessionState` per [contracts/auth-api.yaml](contracts/auth-api.yaml)
 - [X] T041 Implement `apps/api/src/eaios_api/auth/router.py` — `POST /auth/login` with per-tenant email resolution over derived company ids (research R4), `POST /auth/logout`, `GET /auth/session`
 - [X] T042 Implement `apps/api/src/eaios_api/errors.py` — 401/403/404 handlers returning the `Problem` envelope with no internal detail (FR-022), and register the auth router and handlers in `apps/api/src/eaios_api/main.py`
-- [X] T043 Re-run `tests/unit/test_passwords.py`, `test_tokens.py`, `tests/security/test_token_tampering.py`, `test_login_enumeration.py`, `test_session_lifecycle.py`, and `tests/integration/test_session_expiry.py`; confirm every one now passes
+- [X] T043 Re-run `tests/unit/test_passwords.py`, `tests/unit/test_tokens.py`, `tests/security/test_login_enumeration.py`, `test_session_lifecycle.py`, and `tests/integration/test_session_expiry.py`; confirm every one now passes
 
 ### 2E — Access context and enforcement (tests first)
 
@@ -168,7 +168,7 @@ longer reachable.
 - [X] T076 [US1] Implement `apps/web/app/portal/(authed)/profile/page.tsx` — My HR Profile with department, office, manager, employment type, and leave balance, and all six states
 - [X] T077 [US1] Add `/portal/home` and `/portal/profile` to `NON_CONTENT_ROUTES` in `apps/web/lib/pages.ts` so the existing sweeps visit them and `sitemap.ts` does not
 - [X] T078 [P] [US1] Write `apps/web/tests/SignInForm.test.tsx` — labels, error association, live-region announcement, one message for every refusal
-- [X] T079 [US1] Write `apps/web/tests/portal-states.test.tsx` — every portal surface × loading, empty, error, unauthenticated, **expired**, and access-denied, driven by the `lib/pages.ts` inventory
+- [X] T079 [US1] Write `apps/web/tests/portal-states.test.tsx` — every portal surface against loading, empty, error, unauthenticated, **expired**, and access-denied, driven by the `lib/pages.ts` inventory. Each of the 35 route/state cells is classified route-specific, shared-boundary, or unreachable-with-a-reason, and the suite fails if any cell is unclassified (contracts/portal-routes.md §3). Writing it found five gaps: no loading boundary existed, the shell and `/portal` both collapsed *error* into *unauthenticated*, the error boundary had to move up a segment to catch the shell, and `/portal/team/[userId]` had no retry
 - [X] T080 [US1] Write `apps/web/e2e/portal.spec.ts` — sign in, land on the profile, sign out, confirm the protected address is no longer reachable, and confirm the expiry state is reached and named
 
 **Checkpoint**: User Story 1 is fully functional and independently testable. This is the
@@ -201,7 +201,7 @@ events.
 - [X] T089 [US2] Re-run `tests/security/test_manager_scope.py` and `tests/security/test_authorize_before_read.py`; confirm both pass
 - [X] T090 [P] [US2] Implement `apps/web/app/portal/(authed)/team/page.tsx` — the direct-reports list with its empty state held distinct from access-denied
 - [X] T091 [US2] Implement `apps/web/app/portal/(authed)/team/[userId]/page.tsx` — one report's profile, rendering the designed access-denied state on 403
-- [X] T092 [US2] Add the team routes to `apps/web/lib/pages.ts` and extend `apps/web/tests/portal-states.test.tsx` to cover them
+- [X] T092 [US2] Add the team routes to `apps/web/lib/pages.ts` and extend `apps/web/tests/portal-states.test.tsx` to cover them — `/portal/team` in `PORTAL_PAGES`, and `/portal/team/[userId]` in the new `PORTAL_DYNAMIC_ROUTES` descriptor, kept apart so the browser sweeps that navigate to each `PORTAL_PAGES` entry are never sent to an unresolved `[userId]` template
 - [X] T093 [US2] Extend `apps/web/e2e/portal.spec.ts` with the manager journey: read a report, request an unrelated employee, land on the designed denial
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
@@ -263,18 +263,18 @@ navigation against each user's permission codes.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-**T111 and T112 are written but NOT complete.** Both add steps to
-.github/workflows/ci.yml, and the repository was removed partway through this
-feature, so nothing triggers them. They were briefly marked [X] on the grounds that
-the YAML was correct — which is exactly the reasoning Principle VIII exists to reject:
-a check that has never run is not a check. They stay open until CI runs and is green,
-and FR-037, SC-012, and spec 001 FR-047c stay unmet until then.
+**T111 and T112 are complete, and the evidence is a run rather than a file.** Both
+add steps to `.github/workflows/ci.yml`. They were briefly marked [X] once on the
+grounds that the YAML was correct — the reasoning Principle VIII exists to reject — and
+reopened. They are closed now against **CI run 31443872819** at commit `429fdcb`, API
+conclusion `success`: 7/7 jobs green, 86 successful steps, 3 conditional log-dump skips,
+0 failures. FR-037, SC-012, and spec 001 FR-047c are met by that run.
 
 **Purpose**: The evidence, the pipeline, and the documentation that make the feature *done*
 rather than working.
 
-- [ ] T111 [P] Add a `Provision credentials` step to the `stack` job in `.github/workflows/ci.yml`, after the seed step and before the test steps
-- [ ] T112 [P] Add the authorization and authentication suites as their own named step in `.github/workflows/ci.yml` so a failure names itself, and confirm the step's exit code gates the job (FR-037)
+- [X] T111 [P] Add a `Provision credentials` step to the `stack` job in `.github/workflows/ci.yml`, after the seed step and before the test steps — green in run 31443872819. A second step, `Re-provision credentials after the destructive lifecycle tests`, was needed for the same reason one step later: `tests/e2e/test_determinism.py` resets twice and never re-provisions, so the browser suite below it found no credentials and every sign-in answered 401
+- [X] T112 [P] Add the authorization and authentication suites as their own named step in `.github/workflows/ci.yml` so a failure names itself, and confirm the step's exit code gates the job (FR-037) — 128 passed in run 31443872819. The gating half is proven by two earlier runs of the same step: in 31426053623 it exited 4 and the job failed; in 31427580344 it passed and the job continued. The step also named a stale path, `tests/security/test_token_tampering.py`, which never existed and made `pytest` abort before collection
 - [X] T113 [P] Confirm the existing accessibility, keyboard, responsive, and metadata sweeps in `apps/web/e2e/` reach the new portal routes through `apps/web/lib/pages.ts`; extend them if any filters by path prefix
 - [X] T114 [P] Confirm the `Committed API types match the running API` step in `.github/workflows/ci.yml` covers the new surface and still runs before the browser suite
 - [X] T115 [P] Document the `up → seed → credentials` order and credential re-provisioning after reset in `docs/running.md` and `README.md`
@@ -335,10 +335,9 @@ alongside it — it performs no I/O. 2C (credentials) needs 2A. 2D (authenticati
 ## Parallel Example: Phase 2D
 
 ```bash
-# Write all six failing tests together, then run them once:
+# Write all five failing tests together, then run them once:
 Task: "tests/unit/test_passwords.py"
 Task: "tests/unit/test_tokens.py"
-Task: "tests/security/test_token_tampering.py"
 Task: "tests/security/test_login_enumeration.py"
 Task: "tests/security/test_session_lifecycle.py"
 Task: "tests/integration/test_session_expiry.py"

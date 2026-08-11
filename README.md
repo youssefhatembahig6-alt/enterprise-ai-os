@@ -1,13 +1,20 @@
 # Enterprise AI Operating System
 
 A tenant-isolated, permission-aware AI platform over private company knowledge.
-This repository currently contains the **foundation**: the monorepo, a one-command local
-environment, the tenant-scoped schema, and (in progress) a deterministic generator for two
-isolated synthetic companies.
+
+**Features 001-003 are complete**: the monorepo and one-command local environment, a
+deterministic generator for two isolated synthetic companies, the public website, and an
+authenticated employee portal with request-time authorization. Verified by CI run
+[31443872819](https://github.com/youssefhatembahig6-alt/enterprise-ai-os/actions/runs/31443872819)
+at commit `429fdcb` — 7/7 jobs green. **Feature 004 has not started**; document ingestion,
+embeddings, RAG, chat streaming, agents, and write actions with their approval gate are
+all out of scope so far.
 
 - **Blueprint** (what we are building): [`docs/Enterprise_AI_OS_EDITED.html`](docs/Enterprise_AI_OS_EDITED.html)
 - **Engineering rules** (how we build it): [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
-- **Current feature**: [`specs/001-foundation-tenant-seed/`](specs/001-foundation-tenant-seed/)
+- **Completed features**: [`001-foundation-tenant-seed`](specs/001-foundation-tenant-seed/) ·
+  [`002-public-website`](specs/002-public-website/) ·
+  [`003-auth-portal-shell`](specs/003-auth-portal-shell/)
 - **Documentation index**: [`docs/README.md`](docs/README.md)
 
 ## Prerequisites
@@ -68,13 +75,21 @@ Supporting targets: `make down` · `make clean` · `make seed` · `make credenti
 ## Layout
 
 ```text
-apps/api          FastAPI service — health, readiness, dataset provenance
-apps/web          React status shell (no product UI yet — see decision D1)
-packages/core     Shared domain: models, deterministic IDs, fingerprinting, tenant keys
-packages/ui       Shared React primitives
-packages/contracts Generated TypeScript API types
+apps/api          FastAPI service. Modules: health (liveness, readiness), public
+                  (anonymous website content), auth (sign-in, sign-out, session),
+                  authz (the five-layer policy engine and its audit trail),
+                  me (current user, access context, own HR profile, direct reports),
+                  hr (a report's profile, and compensation behind its own permission)
+apps/web          Next.js site: the eight public content pages, a diagnostic status
+                  route, and the authenticated portal at /portal — sign-in, home,
+                  own HR profile, team, a report's profile, and access-denied
+packages/core     Shared domain: models, deterministic IDs, fingerprinting, tenant keys,
+                  password hashing, and the authorization policy types
+packages/ui       Shared React primitives and state patterns (empty, error,
+                  access-denied, session-expired, skeleton)
+packages/contracts Generated TypeScript API types, checked against the live schema
 services/worker   Celery worker (tenant-attributed jobs)
-scripts/seed      Deterministic synthetic-enterprise generator
+scripts/seed      Deterministic synthetic-enterprise generator, plus `credentials`
 infrastructure    Docker Compose, Postgres roles, MinIO and Qdrant bootstrap
 tests             unit · integration · security · e2e
 ```

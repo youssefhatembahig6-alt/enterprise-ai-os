@@ -53,9 +53,28 @@ signed-out on the server and signed-in in the browser.
 
 ## 3. Required states
 
-Constitution *Frontend completeness* and FR-029. **Every** portal surface implements all
-of these, and `apps/web/tests/state-coverage.test.tsx` — the sweep feature 002 built —
-gains the portal pages so a missing state fails a test rather than being noticed in review.
+Constitution *Frontend completeness* and FR-029. Every portal surface implements every
+one of these states **that it can reach**, and `apps/web/tests/portal-states.test.tsx`
+holds the evidence — a missing state fails a test rather than being noticed in review.
+
+**The rule, stated precisely.** The original wording asked for a literal cross-product of
+every surface against every state. Nine of those thirty-five cells cannot exist: the
+denied page reads nothing, so it has no populated or empty result; the home page's only
+read is `/me`, which no authenticated caller can be forbidden from; a profile resolves,
+is refused, or is absent, so there is no empty profile. Satisfying them would have meant
+giving pages fetches they do not need. What is required instead, and enforced:
+
+1. **Every reachable route-specific state is tested** on the route that renders it.
+2. **Shared boundaries are tested once**, and proven to cover their child routes — the
+   `(authed)` shell for unauthenticated and expired, `(authed)/loading.tsx` for loading,
+   and `portal/error.tsx` for the routes with no error state of their own. Nesting is
+   asserted against the route tree, so a route added outside a boundary fails.
+3. **Unreachable cells are classified explicitly, with a stated reason** in the suite, and
+   the suite fails if any route or state is left unclassified.
+
+This narrows nothing. Every state below is still required wherever it can occur, and the
+classification is what makes a gap visible instead of absorbed into a rectangle that was
+never fillable.
 
 | State | Trigger | What the user sees |
 |-------|---------|--------------------|
@@ -68,7 +87,12 @@ gains the portal pages so a missing state fails a test rather than being noticed
 | Success | data present | The page |
 
 **Empty, unauthenticated, expired, and denied are four different states, not one.**
-Collapsing any pair is the defect FR-029 exists to prevent.
+Collapsing any pair is the defect FR-029 exists to prevent. Two such collapses were found
+and fixed once the states were tested: the `(authed)` shell caught every identity failure
+with a bare `catch` and redirected to the sign-in form, so a dependency outage told a
+signed-in person they were signed out; and `/portal` fell through to the form on the same
+failure. Both now leave the unexpected case to `portal/error.tsx`, which states that the
+portal could not be loaded and claims nothing about the session in either direction.
 
 ---
 
