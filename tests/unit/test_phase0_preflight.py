@@ -23,6 +23,7 @@ logic never needs the stack it checks for.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import pathlib
 import sys
 
@@ -75,6 +76,20 @@ BROKEN: tuple[tuple[dict[str, object], str], ...] = (
     ({"weights_checksum": None}, "checksum"),
     ({"weights_checksum": "f" * 64}, "checksum"),
 )
+
+
+@dataclasses.dataclass(frozen=True)
+class _FixedObservation:
+    """Hands preflight an observation that has already been made.
+
+    Lets the weights assertions above reach `preflight.run` without observing twice —
+    and without a second trip through the store boundaries this test deliberately owns.
+    """
+
+    observed: dict[str, object]
+
+    def observe(self) -> dict[str, object]:
+        return dict(self.observed)
 
 
 class TestTheSatisfiedCase:
@@ -196,32 +211,80 @@ class TestPreflightRunsBeforeAnythingItGates:
         assert entry.main([]) != 0
         assert created == [], "a Qdrant collection was built despite preflight failing"
 
-    def test_the_real_environment_probe_does_not_import_the_embedder(
-        self, unimported: None, tmp_path: pathlib.Path
+    def test_the_real_weights_probe_does_not_import_the_embedder(
+        self, unimported: None, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The assertion the fake cannot make.
+        """The assertion the fake cannot make, without requiring a stack.
 
         `FakeEnvironment.observe()` returns a static dict, so it structurally cannot
         import anything — which is how a real preflight that *did* import the embedder
         went unnoticed. `LiveEnvironment._weights_checksum` hashes the weight file, and
         it used to reach `eaios_core.embedding.bge_m3` for the hashing helper: preflight
-        importing the very module it decides the fate of.
+        importing the very module whose fate it decides.
 
-        This runs the **real** probe. It touches no service — every store check fails
-        closed on a connection error — but it does execute the weights branch, which is
-        the one that used to pull the embedder in.
+        **Why this owns its boundaries.** An earlier version called the whole of
+        `observe()` and passed only because the author's Docker stack happened to be
+        running. Since the D3 fix an unreachable store *raises* rather than returning
+        zeros, so on CI — which has no stack in the unit lane — it failed on both
+        platforms. Skipping would have been worse: the assertion would then be silently
+        unproven in exactly the environment that is supposed to prove it.
+
+        So the three store probes are replaced with deterministic in-memory answers and
+        the **weights path is left entirely real** — real files, real `pathlib`, real
+        streaming SHA-256. That is the branch that used to pull the embedder in, and it
+        is the branch under test. Nothing here opens a socket.
         """
+        import socket
+
         from benchmarks.phase0.config import MeasurementConfig
         from benchmarks.phase0.live_environment import LiveEnvironment
 
         weights = tmp_path / "weights"
         weights.mkdir()
-        (weights / "pytorch_model.bin").write_bytes(b"not real weights, just bytes to hash")
+        body = b"not real weights, just bytes to hash"
+        (weights / "pytorch_model.bin").write_bytes(body)
         (weights / ".revision").write_text("0" * 40, encoding="utf-8")
 
-        observed = LiveEnvironment(MeasurementConfig(weights_directory=weights)).observe()
+        # Any outbound attempt is recorded and refused, so "no store was contacted" is
+        # measured rather than asserted from reading the code.
+        attempts: list[str] = []
 
-        assert observed["weights_checksum"], "the weights branch did not run at all"
+        def refuse(*args: object, **kwargs: object) -> object:
+            attempts.append(repr(args))
+            raise AssertionError("the weights probe attempted a network connection")
+
+        monkeypatch.setattr(socket, "create_connection", refuse)
+        monkeypatch.setattr(socket, "getaddrinfo", refuse)
+        monkeypatch.setattr(socket.socket, "connect", refuse, raising=False)
+
+        environment = LiveEnvironment(MeasurementConfig(weights_directory=weights))
+
+        # Only the external store boundaries are replaced. Everything about weights —
+        # locating the file, reading the marker, hashing the bytes — runs for real.
+        monkeypatch.setattr(type(environment), "_probe_postgres", lambda self, e: True)
+        monkeypatch.setattr(type(environment), "_probe_minio", lambda self, e: True)
+        monkeypatch.setattr(type(environment), "_probe_qdrant", lambda self, e: True)
+        monkeypatch.setattr(type(environment), "_active_profile", lambda self, e: "full")
+        monkeypatch.setattr(type(environment), "_text_document_count", lambda self, e: 105)
+        monkeypatch.setattr(type(environment), "_code_collection_points", lambda self, e: 0)
+        monkeypatch.setattr(type(environment), "_unreadable_objects", lambda self, e: ())
+
+        observed = environment.observe()
+
+        expected = hashlib.sha256(body).hexdigest()
+        assert observed["weights_checksum"] == expected, (
+            "the real weights branch did not run; the checksum is not the one this test"
+            " wrote to disk"
+        )
+        assert observed["weights_revision"] == "0" * 40, "the revision marker was not read"
+        assert attempts == [], f"a network connection was attempted: {attempts}"
+
+        # Far enough to have verified provenance: preflight can now judge the weights.
+        report = run(_FixedObservation(observed))
+        assert any(check.name == "BGE weights checksum" for check in report.checks), (
+            "preflight did not reach the weights checks, so provenance was never verified"
+        )
+
         assert self.EMBEDDER not in sys.modules, (
             "the real preflight probe imported the embedder module. Preflight decides"
             " whether the embedder may be constructed; importing it to make that decision"
