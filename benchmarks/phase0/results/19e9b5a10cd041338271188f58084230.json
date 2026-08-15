@@ -1,0 +1,69 @@
+{
+  "disclaimer": "Rows recorded NOT RUN have not been measured. No figure in this file may be described as an achieved threshold unless its outcome is PASS (FR-035e).",
+  "provenance": {
+    "concurrency": 1,
+    "environment_declaration": "benchmarks/phase0/ENVIRONMENT.md",
+    "minimum_samples": 30,
+    "passage_budget": {
+      "passages": 5,
+      "tokens_per_passage": 400,
+      "total_passage_tokens": 2000
+    },
+    "warmup_requests": 5
+  },
+  "rows": [
+    {
+      "detail": "",
+      "name": "preview",
+      "outcome": "PASS",
+      "p95_seconds": 0.21551159999216907,
+      "raw_timings_seconds": [
+        0.16712420000112616,
+        0.18308640000759624,
+        0.19904350000433624,
+        0.18639449999318458,
+        0.21551159999216907,
+        0.19492839998565614,
+        0.20421350002288818,
+        0.19955299998400733,
+        0.19948189999558963,
+        0.16930119998869486,
+        0.2154189999855589,
+        0.21507559999008663,
+        0.19971590000204742,
+        0.182795000000624,
+        0.1650787999969907,
+        0.20445309998467565,
+        0.20810489999712445,
+        0.1762692999909632,
+        0.18280529999174178,
+        0.23106180000468157,
+        0.19592609998653643,
+        0.1519049000053201,
+        0.15027379998355173,
+        0.14830269999220036,
+        0.15151029999833554,
+        0.1383800999901723,
+        0.1456383999902755,
+        0.20090949998120777,
+        0.19295109997619875,
+        0.2043765000125859
+      ],
+      "sample_count": 30,
+      "threshold_seconds": 2.0,
+      "warmups_discarded": 5
+    },
+    {
+      "detail": "GENERATION_URL or GENERATION_SERVICE_TOKEN is absent, so no generation server was provisioned. Run infrastructure/colab/generation_server.ipynb and copy both values into your ignored .env (FR-035o)",
+      "name": "first_token",
+      "outcome": "NOT RUN",
+      "p95_seconds": null,
+      "raw_timings_seconds": [],
+      "sample_count": 0,
+      "threshold_seconds": 5.0,
+      "warmups_discarded": 0
+    }
+  ],
+  "run_id": "19e9b5a10cd041338271188f58084230",
+  "verdict": "NOT RUN"
+}
