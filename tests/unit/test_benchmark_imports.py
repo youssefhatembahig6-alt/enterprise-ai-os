@@ -55,12 +55,25 @@ REQUIRED_IMPORTS: Final[tuple[str, ...]] = (
 
 
 def _scrubbed_environment() -> dict[str, str]:
-    """The caller's environment with every ambient import hint removed."""
+    """The caller's environment with every ambient import hint removed.
+
+    **Preflight is forced to refuse.** This file proves the *import path* resolves, and it
+    reaches preflight to prove it. What it must never do is proceed *past* preflight — on
+    a developer machine with the stack up and weights provisioned, that would build a
+    preview index and take a real measurement from inside a unit test. It did exactly that
+    once: three stray run records and a manifest, written by `pytest tests/unit`.
+
+    `PHASE0_POSTGRES_PORT` points the child at a closed port, so preflight refuses on
+    every machine for the same reason. The result is deterministic whether or not the
+    developer happens to have `make up` running.
+    """
     environment = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     environment["PYTHONIOENCODING"] = "utf-8"
     # Weights are absent here and must never be fetched to make a test pass.
     environment["HF_HUB_OFFLINE"] = "1"
     environment["TRANSFORMERS_OFFLINE"] = "1"
+    # Closed port: preflight fails first, before any index, any weight load, any sample.
+    environment["PHASE0_POSTGRES_PORT"] = "1"
     return environment
 
 
@@ -170,6 +183,20 @@ class TestTheTargetRunsFromOutsideTheRepository:
         assert "no BGE-M3 weights" not in result.stderr, (
             "the embedder was constructed; preflight must refuse before that"
         )
+
+    def test_it_takes_no_measurement(self, outside: pathlib.Path) -> None:
+        """A unit test must not become a benchmark run.
+
+        Guards the regression directly: with the stack up and weights provisioned, this
+        file once ran three real measurements and wrote three run records.
+        """
+        result = _run_target(cwd=outside)
+        combined = result.stdout + result.stderr
+        assert "recorded " not in combined, (
+            "the child wrote a run record, so it proceeded past preflight and measured"
+            f" something:\n{combined}"
+        )
+        assert "p95=" not in combined, "the child reported a measured figure"
 
     def test_it_reaches_preflight_from_inside_the_repository_too(self) -> None:
         result = _run_target(cwd=REPO)

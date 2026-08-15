@@ -79,7 +79,24 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings(argv)
 
     # ---- preflight, before anything it gates -------------------------------------
-    report = preflight.run(gather_environment(settings))
+    #
+    # A probe that cannot complete is a *preflight failure*, not a crash. The probes raise
+    # `PhaseZeroProbeError` rather than returning a plausible zero — that is the whole
+    # point of D3 — but an exception allowed to escape here would replace a named,
+    # actionable refusal with a stack trace, which is the uncontrolled traceback T034
+    # removed from the validation path. Same rule, same treatment.
+    from .live_environment import PhaseZeroProbeError
+
+    try:
+        report = preflight.run(gather_environment(settings))
+    except PhaseZeroProbeError as unreachable:
+        print(
+            "preflight failed; the benchmark did not start\n"
+            f"  probe: {unreachable}",
+            file=sys.stderr,
+        )
+        return EXIT_PREFLIGHT_FAILED
+
     if not report.ok:
         print(report.describe(), file=sys.stderr)
         return EXIT_PREFLIGHT_FAILED

@@ -112,6 +112,7 @@ ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 # launcher is the same CLI's front door and reports the same way.
 "benchmarks/phase0/__main__.py" = ["T20"]
 "benchmarks/run_phase0.py" = ["T20"]
+"benchmarks/provision_bge.py" = ["T20"]
 # A notebook communicates by printing; that is what a notebook is. Ruff still checks it
 # for real defects, which is why it is ignored per-rule rather than excluded outright.
 "infrastructure/colab/*.ipynb" = ["T20"]
@@ -197,6 +198,11 @@ markers = [
     "integration: requires the Docker Compose stack",
     "security: tenant isolation and access-control invariants",
     "e2e: full clean-environment lifecycle",
+    # Deliberately NOT `integration`. Ordinary CI runs `-m integration` against a seeded
+    # stack, but it is model-free (FR-035b) and has no BGE-M3 weights — so these would
+    # fail there rather than skip, and `EAIOS_NO_SKIPS` turns a skip into a failure too.
+    # Its own marker keeps it unselected until someone opts in with `-m phase0_controlled`.
+    "phase0_controlled: needs the seeded stack AND the pinned local BGE-M3 weights",
 ]
 addopts = "-ra --strict-markers"
 asyncio_default_fixture_loop_scope = "function"

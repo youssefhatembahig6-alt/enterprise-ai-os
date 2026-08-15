@@ -76,21 +76,33 @@ at provisioning time or at request time (FR-011c, FR-011e, FR-011f).
 Embedding runs **locally**, so these weights land on the developer machine or the CI
 controlled lane — never inside an ordinary CI job, which is model-free (FR-035b).
 
-```bash
-huggingface-cli download BAAI/bge-m3 \
-  --revision 5617a9f61b028005a4858fdac845db406aefb181 \
-  --local-dir models/bge-m3
-```
-
-Verify before use — an unverified download is a guess about what will run (FR-011f):
+One command downloads, verifies and records:
 
 ```bash
-sha256sum models/bge-m3/pytorch_model.bin
+uv run python benchmarks/provision_bge.py
 ```
 
-Expect `b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38`. A mismatch is a
-hard stop, not a warning: `eaios_core.embedding.bge_m3` refuses to construct when the
-checksum disagrees with this file.
+It fetches only the files this feature loads, checks the size and the SHA-256 against the
+pins above, and — **only after the checksum matches** — writes an ignored `.revision`
+marker beside them.
+
+If the weights are already on disk, verify and record without touching the network:
+
+```bash
+uv run python benchmarks/provision_bge.py --verify-only
+```
+
+**Why a helper rather than two shell commands.** The old process was
+`huggingface-cli download` followed by `sha256sum`, and it recorded the revision nowhere.
+`benchmarks/phase0/preflight.py` reads a `.revision` marker to confirm which revision is
+installed, and nothing created it — so correct weights with a matching checksum still
+failed preflight with `weights revision is '<absent>'`. The helper is what closes that
+loop, and it writes the marker atomically so an interrupted run leaves no half-written
+revision asserting a verification that did not finish.
+
+A checksum mismatch is a hard stop, not a warning, in both places:
+`eaios_core.embedding.bge_m3` also refuses to construct when the file disagrees with the
+pin.
 
 ### Qwen2.5-3B-Instruct, on the Colab session
 

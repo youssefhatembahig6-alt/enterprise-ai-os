@@ -122,10 +122,34 @@ class TestTheGateIsReadable:
                 f"GATE.md has no `{row}` row"
             )
 
-    def test_nothing_has_been_measured_yet(self) -> None:
-        """States the current, deliberate baseline. When a row genuinely passes, this
-        assertion is the one that has to be updated — consciously."""
-        assert unmeasured_rows() == {"preview", "first_token"}
+    def test_only_first_token_remains_unmeasured(self) -> None:
+        """The deliberate baseline, updated consciously when a row genuinely passed.
+
+        `preview` was measured on 2026-08-15 — run `19e9b5a10cd041338271188f58084230`,
+        p95 0.216 s over 30 samples after 5 discarded warm-ups — so it is no longer in
+        this set. `first_token` still is, and stays until a Colab T4 is provisioned and
+        all seven FR-035o prerequisites are verified.
+
+        This assertion exists to make flipping a row a decision rather than an edit: if
+        someone marks `first_token` PASS without a measurement, this fails.
+        """
+        assert unmeasured_rows() == {"first_token"}
+
+    def test_the_preview_row_carries_a_figure_and_a_record(self) -> None:
+        """A `PASS` with no number or no run id is the claim FR-035e forbids."""
+        import re as _re
+
+        text = GATE.read_text(encoding="utf-8")
+        row = _re.search(r"^\|\s*`preview`\s*\|(.+)$", text, _re.MULTILINE)
+        assert row, "GATE.md has no preview row"
+        cells = [cell.strip() for cell in row.group(1).split("|")]
+        assert cells[0] == "`PASS`", f"unexpected preview status: {cells[0]}"
+        assert _re.search(r"\d+\.\d+\s*s", cells[2]), (
+            f"the preview row reads PASS with no measured figure: {cells[2]!r}"
+        )
+        assert _re.search(r"[0-9a-f]{32}", cells[4]), (
+            f"the preview row reads PASS with no run record id: {cells[4]!r}"
+        )
 
 
 class TestTheDetectorIsNotVacuous:
