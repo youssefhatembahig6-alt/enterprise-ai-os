@@ -7,7 +7,7 @@ SEED    := $(COMPOSE) run --rm --no-deps -T seed
 .DEFAULT_GOAL := help
 .PHONY: help up down reset seed credentials verify fingerprint migrate test test-unit \
         test-integration test-security test-e2e lint fmt contracts docs docs-check \
-        test-site logs ps clean
+        test-site logs ps clean benchmark-phase0
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -80,6 +80,37 @@ docs: ## Regenerate docs/personas.md and docs/dataset.md from the generator
 
 docs-check: ## Fail if the committed docs no longer match the dataset
 	uv run python -m eaios_seed.cli docs --check
+
+## --------------------------------------------------------------------------
+## Phase 0 feasibility benchmark (Feature 004, FR-035f)
+## --------------------------------------------------------------------------
+
+# NOT part of `make test`, and NEVER run in CI. It needs the full seeded stack, the
+# local BGE weights, and a provisioned Colab T4 behind a tunnel — none of which an
+# ordinary CI job has, and two of which cost money and a browser session to obtain.
+# CI stays network-free and model-free (FR-035b); this target is the opposite of that
+# by design, which is exactly why it is invoked by hand and gated on its own record.
+#
+# The import path is built by `benchmarks/run_phase0.py`, not spelled out here. Two
+# reasons, both learned the hard way:
+#
+#   * A `:`-joined list is wrong on Windows, where os.pathsep is `;` — the whole value
+#     collapses into one bogus entry and `eaios_core` stops resolving.
+#   * Relative parts make the target work only from the repository root, which is the
+#     cwd assumption it is supposed to remove.
+#
+# The launcher derives the repository root from its own location and joins with
+# `os.pathsep`, so the target is correct from any directory on any platform. The test
+# executes this same target — there is one path construction, not one per caller
+# (FR-035b, FR-035f, SC-018).
+#
+# `$(REPO_ROOT)` comes from this Makefile's own path, so `make -f /elsewhere/Makefile`
+# still finds the launcher. `--project` points uv at the right environment without
+# requiring the caller to stand inside it.
+REPO_ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+
+benchmark-phase0: ## Feature 004 Phase 0 feasibility benchmark (never run by CI)
+	uv run --project "$(REPO_ROOT)" python "$(REPO_ROOT)/benchmarks/run_phase0.py"
 
 ## --------------------------------------------------------------------------
 ## Tests — the order CI runs them in

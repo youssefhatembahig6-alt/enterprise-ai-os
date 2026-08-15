@@ -24,6 +24,31 @@ dependencies = [
     # API because two members need it — the API verifies and the seed's `credentials`
     # command hashes — and `scripts/seed` may not import from `apps/api`.
     "argon2-cffi==25.1.0",
+    # ---------------------------------------------------------------------
+    # Feature 004: the local BGE-M3 runtime (spec 004 FR-011c, FR-035p).
+    #
+    # Owned by core *by decision*, not by accident of layout. All three consumers
+    # legitimately embed: the API embeds retrieval queries, the seed embeds documents
+    # during ingestion, and the worker executes tenant-attributed indexing. All three
+    # images install `./packages/core`, so declaring it here is what puts one identical
+    # runtime in front of all of them.
+    #
+    # `uv.lock` covers the root development environment; Docker resolves the identical
+    # exact pin from this file. `tests/unit/test_packaging_layout.py` fails the build if
+    # the two ever drift apart.
+    #
+    # Deliberately NOT a `benchmarks/pyproject.toml`: nothing installs from such a file
+    # — there is no uv workspace here and no benchmark image — so a pin placed there
+    # would be inert while looking authoritative.
+    #
+    # Imported lazily, inside the embedder's constructor. A top-level import would pull
+    # ~2.5 GB of runtime into every process that touches core, including the ones that
+    # never embed, and would break the bare-checkout boundary that
+    # `tests/unit/test_phase0_bare_checkout.py` enforces.
+    "torch==2.5.1",
+    "transformers==4.47.1",
+    # XLM-RoBERTa is BGE-M3's base; its tokenizer needs sentencepiece to convert.
+    "sentencepiece==0.2.0",
 ]
 
 [build-system]

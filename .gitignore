@@ -28,6 +28,18 @@ packages/*/dist/
 !.env.example
 !infrastructure/.env.example
 
+# Model weights — never committed, never redistributed (FR-011g, docs/models.md).
+# Both licences are recorded there; the Qwen one permits redistribution only with the
+# agreement attached, which a git repository does not do on its own.
+#
+# `/models/` is anchored to the repository root deliberately. An unanchored `models/`
+# matches at every depth, which would silently swallow new files under
+# packages/core/src/eaios_core/models/ — the ORM package, nothing to do with weights.
+/models/
+*.gguf
+*.safetensors
+*.bin
+
 # Docker volumes / local state
 infrastructure/.volumes/
 

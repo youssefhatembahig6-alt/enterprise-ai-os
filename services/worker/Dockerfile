@@ -15,7 +15,16 @@ COPY services/worker/pyproject.toml services/worker/pyproject.toml
 COPY packages/core/src packages/core/src
 COPY services/worker/src services/worker/src
 
-RUN pip install --no-cache-dir ./packages/core ./services/worker
+# The CPU-only PyTorch index, matching the root `uv.lock` (spec 004 FR-011c).
+# `packages/core` declares the BGE-M3 runtime, so this image installs torch whether or
+# not it ever embeds. Without this index pip resolves the default CUDA wheel — thirteen
+# `nvidia-*` distributions plus `triton`, gigabytes of runtime this container has no GPU
+# to use. `--extra-index-url` would still allow the CUDA build to win, so the CPU index
+# is the *primary* one and PyPI is the extra.
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --extra-index-url https://pypi.org/simple \
+    ./packages/core ./services/worker
 
 # `-B` embeds the beat scheduler in this worker process.
 #

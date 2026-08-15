@@ -39,10 +39,38 @@ dependencies = [
     "Faker==33.3.0",
     "Jinja2==3.1.5",
     "typer==0.15.1",
+    # Feature 004: the local BGE-M3 runtime. One identical pin here and in
+    # `packages/core/pyproject.toml` — this file is the developer and benchmark
+    # environment, that one is what the three Docker images install. See the longer
+    # note there for why core owns it (spec 004 FR-011c, FR-035p).
+    "torch==2.5.1",
+    "transformers==4.47.1",
+    "sentencepiece==0.2.0",
 ]
 
 [tool.uv]
 package = false
+
+# ---------------------------------------------------------------------------
+# CPU-only PyTorch (spec 004 FR-011c)
+# ---------------------------------------------------------------------------
+# Embedding runs on the **local CPU**; the reference machine has no CUDA stack at all
+# (benchmarks/phase0/ENVIRONMENT.md). The default PyPI `torch` wheel bundles the CUDA
+# runtime — thirteen `nvidia-*` distributions plus `triton`, gigabytes of it — into
+# every image that installs `packages/core`, which is the API, the worker and the seed.
+# None of them can use a GPU, so that payload is pure weight.
+#
+# Pinning the official CPU index resolves the identical `2.5.1+cpu` build everywhere:
+# the developer environment through `uv.lock`, and all three containers through their
+# own `--index-url`. `tests/unit/test_packaging_layout.py` fails the build if a CUDA
+# distribution reappears in the lock or if a Dockerfile could resolve the default build.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
 
 [dependency-groups]
 dev = [
@@ -60,13 +88,17 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/core/src", "apps/api/src", "services/worker/src", "scripts/seed/src"]
+# `.` so `benchmarks` resolves as first-party. Without it the Phase 0 harness imports
+# sort into the third-party block, which is both wrong and a churn source every time
+# someone runs `ruff --fix`.
+src = ["packages/core/src", "apps/api/src", "services/worker/src", "scripts/seed/src", "."]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "T20", "SIM", "RUF"]
-# RUF002 flags en dashes and multiplication signs in prose; that check targets
-# identifier confusion, not documentation, and the characters are intentional here.
-ignore = ["E501", "RUF002"]
+# RUF001/RUF002/RUF003 flag en dashes and multiplication signs in strings, docstrings and
+# comments; that check targets identifier confusion, not prose, and the characters are
+# intentional throughout this codebase's documentation.
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
 # The seed CLI legitimately prints to stdout — that output is a contract.
@@ -75,6 +107,14 @@ ignore = ["E501", "RUF002"]
 "scripts/seed/src/eaios_seed/cli.py" = ["T20", "B008"]
 # selfcheck is a CLI: its stdout is the fingerprint CI compares.
 "packages/core/src/eaios_core/selfcheck.py" = ["T20"]
+# The Phase 0 benchmark is a hand-run CLI. Its stdout is the result table an operator
+# reads and copies into GATE.md — that output is the contract, not debug noise. The
+# launcher is the same CLI's front door and reports the same way.
+"benchmarks/phase0/__main__.py" = ["T20"]
+"benchmarks/run_phase0.py" = ["T20"]
+# A notebook communicates by printing; that is what a notebook is. Ruff still checks it
+# for real defects, which is why it is ignored per-rule rather than excluded outright.
+"infrastructure/colab/*.ipynb" = ["T20"]
 "tests/**" = ["DTZ", "S101"]
 # `Depends(...)` in a parameter default is the FastAPI idiom, not a mutable default.
 "apps/api/src/eaios_api/health/*.py" = ["B008"]
@@ -126,7 +166,18 @@ mypy_path = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["faker.*", "qdrant_client.*", "minio.*", "celery.*", "structlog.*"]
+# `transformers` and `torch` ship no py.typed marker, so mypy cannot see through them.
+# They are wrapped behind narrow first-party interfaces (`Tokenizer`, `_Backend`), which
+# is where the typing that matters lives.
+module = [
+    "faker.*",
+    "qdrant_client.*",
+    "minio.*",
+    "celery.*",
+    "structlog.*",
+    "transformers.*",
+    "torch.*",
+]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
