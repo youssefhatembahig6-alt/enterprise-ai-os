@@ -359,7 +359,7 @@ Reversible, one per concern, in `apps/api/alembic/versions/`:
    partial unique index enforcing one active corpus version per `(company_id, collection)`
 2. `conversations`, `conversation_turns`, `turn_citations`
 3. `evaluation_runs`, `evaluation_question_results` + the measure-class enum
-4. RLS policies and tenant-scope grants on all six tables, matching the existing pattern
+4. RLS policies and tenant-scope grants on all eight tables, matching the existing pattern
 
 Every `down` path drops what its `up` created, and the existing
 `tests/integration/test_migrations.py` exercises reversibility (spec 001 FR-007a). Qdrant

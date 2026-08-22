@@ -88,6 +88,11 @@ def build_access_context(
         company_slug=slug_of(company_id),
         user_id=user.id,
         session_id=session_id,
+        # Passed straight through, including absent. The `users` columns are NOT NULL
+        # today, so in this dataset both are always present — but the context type now
+        # admits absence (FR-014a), and the construction path must carry that through
+        # rather than substitute a placeholder. A substituted department would put the
+        # caller in a department nobody assigned them to.
         department_id=user.department_id,
         office_id=user.office_id,
         country=user.country,

@@ -41,9 +41,7 @@ from .sensitivity import is_sensitive
 __all__ = ["evaluate", "evaluate_with"]
 
 
-def evaluate(
-    subject: AccessContext, action: Action, resource: ResourceDescriptor
-) -> Decision:
+def evaluate(subject: AccessContext, action: Action, resource: ResourceDescriptor) -> Decision:
     """Decide one request. The entry point every route uses.
 
     Closed over the rules table: a ``(kind, action)`` pairing nobody wrote a rule for
@@ -97,9 +95,7 @@ def evaluate_with(
     # even when it produces the right answer, because it breaks the moment roles are
     # recomposed.
     held = tuple(
-        rule
-        for rule in policy.rules
-        if rule.permission is None or subject.has(rule.permission)
+        rule for rule in policy.rules if rule.permission is None or subject.has(rule.permission)
     )
     if not held:
         return _deny(ReasonCode.PERMISSION_MISSING, layer=2)
@@ -151,8 +147,7 @@ def evaluate_with(
             # their own payroll record, which is not what the level means.
             owns_it = resource.owner_id is not None and resource.owner_id == subject.user_id
             explicitly_granted = granted_by_acl or (
-                resource.acl_grants is not None
-                and _acl_matches(subject, resource.acl_grants)
+                resource.acl_grants is not None and _acl_matches(subject, resource.acl_grants)
             )
             if not (owns_it or explicitly_granted):
                 return _deny(ReasonCode.CLASSIFICATION_TOO_HIGH, layer=5)
@@ -209,6 +204,10 @@ def _acl_matches(subject: AccessContext, grants: frozenset[AclGrant]) -> bool:
             return True
         if (
             grant.principal_type == "DEPARTMENT"
+            # `is not None` first, explicitly. A caller with no department must not match
+            # a DEPARTMENT grant; without the guard the comparison is merely False today
+            # and would silently become True the moment a grant carried a null principal.
+            and subject.department_id is not None
             and grant.principal_id == subject.department_id
         ):
             return True

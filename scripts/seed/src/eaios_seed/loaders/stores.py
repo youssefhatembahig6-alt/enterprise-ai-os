@@ -16,7 +16,16 @@ from qdrant_client import QdrantClient
 from qdrant_client import models as qmodels
 from sqlalchemy import Engine, text
 
-from eaios_core.clients.stores import get_minio, get_qdrant, get_redis
+from eaios_core.clients.stores import (
+    REQUIRED_PAYLOAD_INDEXES,
+    ensure_payload_indexes,
+    get_minio,
+    get_qdrant,
+    get_redis,
+)
+from eaios_core.clients.stores import (
+    missing_payload_indexes as _missing_payload_indexes,
+)
 from eaios_core.db import create_owner_engine
 from eaios_core.keys import cache_namespace, rate_limit_namespace
 from eaios_core.settings import Settings, get_settings
@@ -58,9 +67,14 @@ RUNTIME_TABLES: tuple[str, ...] = ("contact_submissions", "sessions", "user_cred
 #: Payload fields indexed up front. Adding company_id to a populated collection
 #: later is a reindex, and the filter path must exist before any content does.
 #: Public because the cross-tenant probe verifies against this same list.
-PAYLOAD_INDEXES: tuple[str, ...] = (
-    "company_id", "department_id", "classification", "country", "owner_id", "document_id",
-)
+#:
+#: **Derived, not restated.** This was a hand-written tuple of six, and
+#: `qdrant_filter` constrained a different six: `allowed_roles` was used and unindexed,
+#: `document_id` indexed and idle (research R3). Worse, `reset_all` deletes every
+#: collection and this function rebuilds them — so provisioning the missing index
+#: anywhere else survived exactly until the next `seed reset` undid it. One canonical
+#: list makes that drift impossible rather than merely noticed.
+PAYLOAD_INDEXES: tuple[str, ...] = REQUIRED_PAYLOAD_INDEXES
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,12 +270,10 @@ def provision_qdrant(settings: Settings | None = None) -> int:
                     distance=qmodels.Distance[cfg.qdrant.distance.upper()],
                 ),
             )
-        for field in PAYLOAD_INDEXES:
-            client.create_payload_index(
-                collection_name=name,
-                field_name=field,
-                field_schema=qmodels.PayloadSchemaType.KEYWORD,
-            )
+        # Delegated to the shared provisioner so this path and the retrieval path
+        # cannot disagree about what "indexed" means. Collections are empty here by
+        # decision D2, so no reindex is implied.
+        ensure_payload_indexes(client, name)
 
         missing = missing_payload_indexes(client, name)
         if missing:
@@ -275,11 +287,11 @@ def provision_qdrant(settings: Settings | None = None) -> int:
 def missing_payload_indexes(client: QdrantClient, collection: str) -> set[str]:
     """Payload fields that should be indexed on `collection` but are not.
 
-    Shared with the cross-tenant probe so provisioning and verification cannot
-    disagree about what "indexed" means.
+    Re-exported from `eaios_core.clients.stores` rather than reimplemented, for the
+    reason the docstring above gives: a second definition is a second list, and two
+    lists drift.
     """
-    indexed = set(client.get_collection(collection).payload_schema or {})
-    return set(PAYLOAD_INDEXES) - indexed
+    return _missing_payload_indexes(client, collection)
 
 
 def provision_redis(settings: Settings | None = None) -> int:

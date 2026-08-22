@@ -48,9 +48,9 @@ class AccessContextView(BaseModel):
 
     company_id: uuid.UUID
     user_id: uuid.UUID
-    department_id: uuid.UUID
+    department_id: uuid.UUID | None
     office_id: uuid.UUID
-    country: str
+    country: str | None
     employment_type: str
     manager_id: uuid.UUID | None
     direct_report_ids: list[uuid.UUID]

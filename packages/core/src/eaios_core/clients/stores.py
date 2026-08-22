@@ -14,28 +14,144 @@ from __future__ import annotations
 
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Final, Literal, Protocol
 
 import redis as redis_lib
 from minio import Minio
 from qdrant_client import QdrantClient
 
+from ..authz.filters import FILTER_KEYS
 from ..settings import Settings, get_settings
 
 __all__ = [
+    "REQUIRED_PAYLOAD_INDEXES",
     "DependencyName",
     "DependencyStatus",
+    "PopulatedCollectionError",
     "check_minio",
     "check_postgres",
     "check_qdrant",
     "check_redis",
     "check_worker",
+    "ensure_payload_indexes",
     "get_minio",
     "get_qdrant",
     "get_redis",
+    "missing_payload_indexes",
 ]
 
 DependencyName = Literal["postgres", "redis", "qdrant", "minio", "worker"]
+
+#: Every payload field the retrieval filter constrains, and therefore every field that
+#: needs an index.
+#:
+#: **Derived from `FILTER_KEYS`, never restated.** R3 found two lists of six that were not
+#: the same six: `allowed_roles` was used by the filter and unindexed, `document_id`
+#: indexed and idle. A hand-maintained copy is correct only until the next clause is added,
+#: and the failure it produces is invisible — the query still returns the right rows and
+#: merely costs more than the latency budget allows.
+REQUIRED_PAYLOAD_INDEXES: Final[tuple[str, ...]] = FILTER_KEYS
+
+
+class PopulatedCollectionError(RuntimeError):
+    """Raised when provisioning would touch a collection that already holds points.
+
+    Adding an index to a populated collection is a reindex, not a no-op: it has a cost the
+    caller did not ask for and, on a large corpus, a duration nobody scheduled. So the
+    default is to refuse, and a caller who genuinely means it passes `allow_populated`.
+    """
+
+
+class _SupportsPayloadIndexes(Protocol):
+    """The slice of the Qdrant client this module needs.
+
+    Narrow deliberately: it lets the unit tests exercise the populated and unknown-count
+    branches without populating a real collection to do it.
+    """
+
+    def get_collection(self, collection_name: str) -> Any: ...
+
+    def create_payload_index(
+        self, *, collection_name: str, field_name: str, field_schema: Any
+    ) -> Any: ...
+
+
+def missing_payload_indexes(
+    client: _SupportsPayloadIndexes, collection: str
+) -> set[str]:
+    """Required payload fields that `collection` does not index.
+
+    Qdrant reports `None` rather than `{}` for a collection with no indexes at all, which
+    is why the fallback matters: `set(None)` would raise and `or {}` keeps the answer
+    "all of them missing", which is the truth.
+    """
+    indexed = set(client.get_collection(collection).payload_schema or {})
+    return set(REQUIRED_PAYLOAD_INDEXES) - indexed
+
+
+def ensure_payload_indexes(
+    client: _SupportsPayloadIndexes,
+    collection: str,
+    *,
+    allow_populated: bool = False,
+) -> tuple[str, ...]:
+    """Create every missing payload index on `collection`, idempotently.
+
+    Args:
+        client: A Qdrant client, or anything with its `get_collection` and
+            `create_payload_index`.
+        collection: The collection to provision. **Never created and never deleted here** —
+            this function indexes what exists.
+        allow_populated: Permit indexing a collection that already holds points, accepting
+            the reindex cost. Off by default.
+
+    Returns:
+        The fields actually created, in sorted order. Empty on a second call — idempotence
+        that still did the work is not idempotence, and re-creating six indexes on every
+        start-up is a reindex nobody asked for.
+
+    Raises:
+        PopulatedCollectionError: The collection holds points, or its point count cannot be
+            read, and `allow_populated` is not set. An unreadable count is refused rather
+            than assumed to be zero: treating `None` as empty would wave through exactly
+            the collection this check cannot vouch for.
+
+    This function never calls `delete_collection` or `create_collection`. Recreating a
+    populated collection is not a reindex, it is data loss, and the distinction is worth a
+    sentence here because the two calls sit next to each other in the client's API.
+    """
+    info = client.get_collection(collection)
+    points = getattr(info, "points_count", None)
+
+    if not allow_populated:
+        if points is None:
+            raise PopulatedCollectionError(
+                f"cannot read the point count for {collection!r}, so it is unknown whether"
+                " provisioning would reindex live data; pass allow_populated=True to"
+                " proceed anyway"
+            )
+        if points > 0:
+            raise PopulatedCollectionError(
+                f"{collection!r} holds {points} points; adding a payload index would"
+                " reindex them. Pass allow_populated=True if that is intended"
+            )
+
+    indexed = set(info.payload_schema or {})
+    created = sorted(set(REQUIRED_PAYLOAD_INDEXES) - indexed)
+    for field in created:
+        client.create_payload_index(
+            collection_name=collection,
+            field_name=field,
+            field_schema=_keyword_schema(),
+        )
+    return tuple(created)
+
+
+def _keyword_schema() -> Any:
+    """Imported lazily so this module stays importable without the models package."""
+    from qdrant_client import models as qmodels
+
+    return qmodels.PayloadSchemaType.KEYWORD
 
 
 @dataclass(frozen=True, slots=True)

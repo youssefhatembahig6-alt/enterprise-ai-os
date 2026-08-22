@@ -46,9 +46,7 @@ class TestDistinctSetsDoNotCollide:
         HR record is reachable — so a fingerprint insensitive to a single added code
         would serve an employee a manager's cached answer."""
         base = context(permission_codes=EMPLOYEE).permission_fingerprint
-        widened = context(
-            permission_codes=EMPLOYEE | {"hr:read_team"}
-        ).permission_fingerprint
+        widened = context(permission_codes=EMPLOYEE | {"hr:read_team"}).permission_fingerprint
         assert base != widened
 
     def test_the_same_permissions_in_different_tenants_differ(self) -> None:
@@ -78,24 +76,78 @@ class TestTheSameSetIsAlwaysTheSameValue:
         values = {context(permission_codes=MANAGER).permission_fingerprint for _ in range(5)}
         assert len(values) == 1, f"unstable across construction: {values}"
 
-    def test_it_does_not_depend_on_anything_but_tenant_and_permissions(self) -> None:
-        """Department, office, session, and roles all change without moving it. If they
-        did move it, every user would get their own cache entry and the cache would
-        stop being one."""
+    def test_it_does_not_depend_on_identity_office_or_role_names(self) -> None:
+        """User, session, office, employment type and role names move nothing.
+
+        **Narrowed from "anything but tenant and permissions" in feature 004.** The
+        original invariant was correct while `qdrant_filter` did not narrow by
+        department or country. It now does (FR-014a): two callers holding identical
+        permission codes in different departments reach genuinely different document
+        sets, so a fingerprint blind to those two fields would give them the same cache
+        key for the same question and serve one the other's answer — the cross-scope
+        leak FR-018 exists to prevent.
+
+        The fields listed here are the ones that still change nothing about *what is
+        reachable*, and they remain excluded for the original reason: fragmenting the
+        cache per user would stop it being a cache.
+        """
         base = context(permission_codes=MANAGER).permission_fingerprint
-        from .authz_helpers import SALES, ident
+        from .authz_helpers import ident
 
         varied = context(
             permission_codes=MANAGER,
             user_id=ident("user:someone-else"),
             session_id=ident("session:another"),
-            department_id=SALES,
             office_id=ident("office:dxb"),
-            country="AE",
             employment_type="CONTRACT",
             role_names=frozenset({"Auditor"}),
         ).permission_fingerprint
         assert base == varied
+
+    def test_it_does_depend_on_department_and_country(self) -> None:
+        """The other half of the narrowing, stated so it cannot be reverted silently."""
+        from .authz_helpers import SALES, ident
+
+        base = context(permission_codes=MANAGER)
+        assert (
+            base.permission_fingerprint
+            != context(permission_codes=MANAGER, department_id=SALES).permission_fingerprint
+        ), "two departments shared a fingerprint"
+        assert (
+            base.permission_fingerprint
+            != context(permission_codes=MANAGER, country="AE").permission_fingerprint
+        ), "two countries shared a fingerprint"
+        del ident
+
+    def test_a_missing_attribute_cannot_collide_with_a_real_one(self) -> None:
+        """`None` is rendered `<null>`, which no UUID or ISO country code can produce."""
+        from eaios_core.authz.context import NULL_SENTINEL
+
+        absent = context(permission_codes=MANAGER, department_id=None).permission_fingerprint
+        present = context(permission_codes=MANAGER).permission_fingerprint
+        assert absent != present
+        assert "<" in NULL_SENTINEL, "the sentinel must be unproducible by a real value"
+
+    def test_the_cache_fan_out_stays_bounded(self) -> None:
+        """The original concern, checked rather than dismissed.
+
+        Adding two attributes multiplies entries by department × country **per company**,
+        not per user — the fields that would have fragmented it one-per-user are still
+        excluded above.
+        """
+        from .authz_helpers import SALES
+        from .authz_helpers import ident as _ident
+
+        distinct = {
+            context(permission_codes=MANAGER, user_id=_ident(f"user:{n}")).permission_fingerprint
+            for n in range(5)
+        }
+        assert len(distinct) == 1, "identity still fragments the cache"
+        scoped = {
+            context(permission_codes=MANAGER).permission_fingerprint,
+            context(permission_codes=MANAGER, department_id=SALES).permission_fingerprint,
+        }
+        assert len(scoped) == 2
 
 
 class TestTheShapeIsUsableAsAKeyComponent:

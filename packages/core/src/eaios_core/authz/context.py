@@ -17,8 +17,18 @@ from __future__ import annotations
 import hashlib
 import uuid
 from dataclasses import dataclass
+from typing import Final
 
-__all__ = ["AccessContext"]
+__all__ = ["NULL_SENTINEL", "AccessContext"]
+
+#: How a missing attribute is written into a fingerprint. Chosen so no real value can
+#: produce it: a UUID never contains `<`, and an ISO country code is two letters.
+NULL_SENTINEL: Final[str] = "<null>"
+
+
+def _render(value: object | None) -> str:
+    """Render one nullable attribute for the fingerprint, explicitly."""
+    return NULL_SENTINEL if value is None else str(value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,9 +43,17 @@ class AccessContext:
     user_id: uuid.UUID
     session_id: uuid.UUID
 
-    department_id: uuid.UUID
+    #: Nullable, because FR-014a distinguishes a caller *with* an attribute from a caller
+    #: *without* one: the first reaches matching-or-company-wide documents, the second
+    #: reaches only company-wide ones. A non-optional field cannot express the second
+    #: caller at all, so `qdrant_filter` could never have been tested against them.
+    #:
+    #: Company identity and the classification ceiling stay mandatory. Those are the
+    #: boundary; these two are narrowings, and a narrowing that is absent narrows to the
+    #: company-wide set rather than to everything.
+    department_id: uuid.UUID | None
     office_id: uuid.UUID
-    country: str
+    country: str | None
     employment_type: str
 
     #: Both directions, as FR-008 requires, because they answer different questions.
@@ -93,6 +111,27 @@ class AccessContext:
         The tenant is included even though ``cache_key`` already takes one separately.
         It costs one field and removes any dependence on every future caller
         assembling the key correctly.
+
+        **Department and country are included, and a missing one is explicit.** Two
+        callers in one company can hold identical permission codes and still reach
+        different documents, because the attribute layer narrows by department and
+        country (FR-014a). A fingerprint blind to them would give both the same cache
+        key for the same question and serve one the other's answer — the precise leak
+        FR-018 exists to prevent.
+
+        ``None`` is rendered as ``<null>``, which no real value can produce: a UUID
+        never contains ``<`` and an ISO country code is two letters. Rendering it as
+        the empty string would let a caller with no department collide with one whose
+        department is somehow blank, and rendering it as ``"None"`` would collide with
+        the literal country code ``"None"`` if one ever existed. The sentinel is chosen
+        so that collision is impossible rather than unlikely.
         """
-        material = "|".join([str(self.company_id), *sorted(self.permission_codes)])
+        material = "|".join(
+            [
+                str(self.company_id),
+                f"department={_render(self.department_id)}",
+                f"country={_render(self.country)}",
+                *sorted(self.permission_codes),
+            ]
+        )
         return hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]

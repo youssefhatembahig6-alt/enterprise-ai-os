@@ -159,12 +159,23 @@ null must mean *company-wide* and equality cannot express that:
 | `country` | **should**: equals the caller's **or** is null (company-wide) |
 | `allowed_roles` | **should**: intersects the caller's role ids |
 | `owner_id` | **should**: equals the caller — ownership reaches its own documents |
+| `document_id` | **should**: is one of the **internally resolved READ-granted** ids — the resource-grant reach (R5) |
 
 A caller with a null attribute matches only the null (company-wide) branch of that clause,
 unless owner, role, or an ACL grant reaches the document independently.
 
+**The granted ids are resolved server-side, never supplied.** `document_acl` is relational,
+so the retrieval service queries it for `READ` grants matching the caller's user id, role
+ids and department id — scoped to the caller's company — **before** the vector search, and
+passes only the resulting ids into `qdrant_filter`. The function itself queries nothing.
+
+**Prohibited**: the search layer never accepts granted document ids, ACL rows, or any part
+of an authorization decision from the request body, query string, or header. An endpoint
+that did would be taking the decision from the caller (FR-029).
+
 **Every clause field must have a payload index** and a test that fails when the index is
-absent (FR-014b). `allowed_roles` is the one currently missing.
+absent (FR-014b). That is **seven** fields, not six: `document_id` is already indexed and
+was previously idle. `allowed_roles` is the one currently missing.
 
 **Response narrowing is invisible** (FR-017): the `sources` event carries no total, no
 "withheld" count, and no indication that the permitted set is smaller than the corpus.

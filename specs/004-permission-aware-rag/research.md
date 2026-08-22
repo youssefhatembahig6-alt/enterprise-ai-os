@@ -65,8 +65,12 @@ Question-only keys — rejected, that is the cross-permission leak FR-018 names.
 
 ## R3 — DEFECT: the filter uses a payload field the vector store does not index
 
-**Finding**: `qdrant_filter` returns six keys. The provisioned payload indexes in
-`infrastructure/qdrant/` are six. **They are not the same six.**
+**Finding**: `qdrant_filter` returned six keys. The provisioned payload indexes in
+`infrastructure/qdrant/` are six. **They were not the same six.**
+
+**Resolved in Phase 1.** The filter now uses **seven** fields: `document_id` joined the set
+as the resource-grant reach (R5), so it is both indexed *and* used rather than indexed and
+idle. `allowed_roles` remains the one field used but not yet indexed, which is T047's work.
 
 | Field | Indexed | Used by filter |
 |-------|:-------:|:--------------:|
@@ -75,7 +79,7 @@ Question-only keys — rejected, that is the cross-permission leak FR-018 names.
 | `classification` | ✅ | ✅ |
 | `country` | ✅ | ✅ |
 | `owner_id` | ✅ | ✅ |
-| `document_id` | ✅ | ❌ |
+| `document_id` | ✅ | ✅ (resource-grant reach, Phase 1) |
 | `allowed_roles` | ❌ | ✅ |
 
 **Decision**: Add an `allowed_roles` keyword payload index to the Qdrant provisioning, as
@@ -142,6 +146,26 @@ the evaluation set must include at least one question whose answer is reachable 
 through an ACL grant, plus its negative twin. `ROLE` and `DEPARTMENT` principals and
 `WRITE` are **not** exercised by this feature and that is recorded as a coverage
 limitation, not a silent omission (CHK016).
+
+**The mechanism, named.** `document_acl` is relational and Qdrant payloads are not, so the
+ACL cannot be a payload clause the way `owner_id` is. Instead the retrieval service performs
+**relational ACL resolution before the search**: it queries `document_acl` for `READ` grants
+matching the caller's user id, role ids and department id — scoped to the caller's company —
+and produces an internal **set of granted document ids**. That set is passed into
+`qdrant_filter`, which renders it as a `document_id` reach alongside owner and role.
+
+Three properties follow, and each is the reason for the shape:
+
+* **Still authorization-before-search.** Resolution happens *before* the vector query, so
+  the grant narrows the search rather than filtering its results (FR-013).
+* **Never request-supplied.** The ids are derived server-side from the verified context. An
+  endpoint that accepted granted ids would be accepting an authorization decision from the
+  caller, which is the escalation FR-029 exists to prevent.
+* **`qdrant_filter` stays pure.** It queries nothing; it renders what it is handed. The
+  package must not depend on a database any more than on a vector-store client.
+
+Only `USER`/`READ` grants exist in this corpus, so `ROLE` and `DEPARTMENT` resolution is
+**Phase 3 wiring coverage** — the code path resolves them, and no seeded row exercises it.
 
 **Rationale**: Four grants is enough to prove the layer fires and not enough to prove it
 fires for every principal type. Saying so is better than implying coverage that does not
