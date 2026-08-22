@@ -458,18 +458,15 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
-            /**
-             * Department Id
-             * Format: uuid
-             */
-            department_id: string;
+            /** Department Id */
+            department_id: string | null;
             /**
              * Office Id
              * Format: uuid
              */
             office_id: string;
             /** Country */
-            country: string;
+            country: string | null;
             /** Employment Type */
             employment_type: string;
             /** Manager Id */
